@@ -1,0 +1,22 @@
+{
+    "id": "c",
+    "name": "C Code (.c)",
+    "extension": "c",
+    "boilerplate": {
+        "start": "#include <stdio.h>\n#include <stdbool.h>\n\nint main() {\n",
+        "end": "\n    return 0;\n}"
+    },
+    "nodes": {
+        "cmd_start": "    // Start",
+        "cmd_log": "    printf(\"%s\\n\", (char*){data_in});",
+        "cmd_math_add": "    // Add",
+        "cmd_sub": "    // Sub",
+        "cmd_mul": "    // Mul",
+        "cmd_eq": "    // Equal",
+        "cmd_gt": "    // Greater Than",
+        "cmd_var_def": "    {type} {name} = {value};",
+        "cmd_assign": "    {name} = {value};",
+        "cmd_if": "    if ({condition}) {",
+        "cmd_if_end": "    }"
+    }
+}

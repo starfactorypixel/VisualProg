@@ -1,0 +1,1432 @@
+[
+    {
+        "id": "cmd_ScriptInit",
+        "name": "Start",
+        "type": "event",
+        "visual": {
+            "color": "#10b981",
+            "icon": "play"
+        },
+        "inputs": [],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_FunctionStart",
+        "name": "Begin",
+        "type": "event",
+        "visual": {
+            "color": "#10b981",
+            "icon": "play"
+        },
+        "inputs": [],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_function",
+        "name": "Function",
+        "type": "function",
+        "visual": {
+            "color": "#8b5cf6",
+            "icon": "code"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_TriggerParseReg",
+        "name": "Parsing",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Type (num)",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "Offset (num)",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "res",
+                "name": "Result (reg)",
+                "type": "register"
+            },
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SetScriptArgVal",
+        "name": "SetScriptArgVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "ID",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "Data 0",
+                "type": "number"
+            },
+            {
+                "id": "op3",
+                "name": "Data 1",
+                "type": "number"
+            },
+            {
+                "id": "op4",
+                "name": "Data 2",
+                "type": "number"
+            },
+            {
+                "id": "op5",
+                "name": "Data 3",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SetScriptArgReg8",
+        "name": "SetScriptArgReg8",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "ID",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "Register 0",
+                "type": "register"
+            },
+            {
+                "id": "op3",
+                "name": "Register 1",
+                "type": "register"
+            },
+            {
+                "id": "op4",
+                "name": "Register 2",
+                "type": "register"
+            },
+            {
+                "id": "op5",
+                "name": "Register 3",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SetScriptArgReg32",
+        "name": "SetScriptArgReg32",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "ID",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "Register 0",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegValEqu",
+        "name": "If (Reg = Val)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Value",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegValNeq",
+        "name": "If (Reg != Val)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Value",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegValLss",
+        "name": "If (Reg < Val)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Value",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegValLeq",
+        "name": "If (Reg <= Val)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Value",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegValGtr",
+        "name": "If (Reg > Val)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Value",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegValGeq",
+        "name": "If (Reg >= Val)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Value",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegRegEqu",
+        "name": "If (Reg = Reg)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegRegNeq",
+        "name": "If (Reg != Reg)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegRegLss",
+        "name": "If (Reg < Reg)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegRegLeq",
+        "name": "If (Reg <= Reg)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegRegGtr",
+        "name": "If (Reg > Reg)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IfRegRegGeq",
+        "name": "If (Reg >= Reg)",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SetRegVal",
+        "name": "Set to Reg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Value from",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "res",
+                "name": "to Register",
+                "type": "register"
+            },
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SetRegReg",
+        "name": "Copy Registers",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "Register from",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "res",
+                "name": "Register to",
+                "type": "register"
+            },
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_IncReg",
+        "name": "Register++",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "in",
+                "name": "Register",
+                "type": "ref:register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_DecReg",
+        "name": "Register--",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "in",
+                "name": "Register",
+                "type": "ref:register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_NotReg",
+        "name": "Not",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "in",
+                "name": "Register",
+                "type": "ref:register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_ShiftLeftReg",
+        "name": "ShiftLeftReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_ShiftRightReg",
+        "name": "ShiftRightReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_AndRegVal",
+        "name": "AndRegVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_AndRegReg",
+        "name": "AndRegReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register A",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_OrRegVal",
+        "name": "OrRegVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_OrRegReg",
+        "name": "OrRegReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register A",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_AddRegVal",
+        "name": "AddRegVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SubRegVal",
+        "name": "SubRegVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_MulRegVal",
+        "name": "SubRegVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_DivRegVal",
+        "name": "DivRegVal",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR",
+                "name": "Register",
+                "type": "ref:register"
+            },
+            {
+                "id": "inC",
+                "name": "Count",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_AddRegReg",
+        "name": "AddRegReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR1",
+                "name": "Register A",
+                "type": "ref:register"
+            },
+            {
+                "id": "inR2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_SubRegReg",
+        "name": "SubRegReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR1",
+                "name": "Register A",
+                "type": "ref:register"
+            },
+            {
+                "id": "inR2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_MulRegReg",
+        "name": "SubRegReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR1",
+                "name": "Register A",
+                "type": "ref:register"
+            },
+            {
+                "id": "inR2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_DivRegReg",
+        "name": "DivRegReg",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "inR1",
+                "name": "Register A",
+                "type": "ref:register"
+            },
+            {
+                "id": "inR2",
+                "name": "Register B",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_CanSendRaw11",
+        "name": "CanSendRaw11",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "CAN ID",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "Data 0",
+                "type": "number"
+            },
+            {
+                "id": "op3",
+                "name": "Data 1",
+                "type": "number"
+            },
+            {
+                "id": "op4",
+                "name": "Data 2",
+                "type": "number"
+            },
+            {
+                "id": "op5",
+                "name": "Data 3",
+                "type": "number"
+            },
+            {
+                "id": "op6",
+                "name": "Data 4",
+                "type": "number"
+            },
+            {
+                "id": "op7",
+                "name": "Data 5",
+                "type": "number"
+            },
+            {
+                "id": "op8",
+                "name": "Data 6",
+                "type": "number"
+            },
+            {
+                "id": "op9",
+                "name": "Data 7",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_CanSendRegVal11",
+        "name": "CanSendRegVal11",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "CAN ID",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "Func ID",
+                "type": "number"
+            },
+            {
+                "id": "op3",
+                "name": "Type",
+                "type": "number"
+            },
+            {
+                "id": "op4",
+                "name": "Register A",
+                "type": "register"
+            },
+            {
+                "id": "op5",
+                "name": "Register B",
+                "type": "register"
+            },
+            {
+                "id": "op6",
+                "name": "Register C",
+                "type": "register"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_Goto",
+        "name": "Goto",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_End",
+        "name": "End",
+        "type": "function",
+        "visual": {
+            "color": "#10b981"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            }
+        ],
+        "outputs": []
+    },
+    {
+        "id": "cmd_Exit",
+        "name": "Exit",
+        "type": "function",
+        "visual": {
+            "color": "#10b981"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            }
+        ],
+        "outputs": []
+    }
+]

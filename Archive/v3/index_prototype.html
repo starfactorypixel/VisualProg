@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Visual IO – Grid Prototype</title>
+<style>
+  body {
+    margin: 0;
+    background: #1e1e1e;
+    color: #ddd;
+    font-family: sans-serif;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+/* =======================
+   Canvas setup
+======================= */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+/* =======================
+   Grid
+======================= */
+const GRID_SIZE = 20;
+const SHOW_GRID = true;
+
+/* =======================
+   Model
+======================= */
+class Port {
+  constructor(node, x, y, type) {
+    this.node = node;
+    this.x = x;
+    this.y = y;
+    this.type = type; // "in" | "out"
+    this.radius = 6;
+  }
+
+  absX() { return this.node.x + this.x; }
+  absY() { return this.node.y + this.y; }
+
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.absX(), this.absY(), this.radius, 0, Math.PI * 2);
+    ctx.fillStyle = this.type === "in" ? "#4fc3f7" : "#81c784";
+    ctx.fill();
+  }
+
+  hit(mx, my) {
+    const dx = mx - this.absX();
+    const dy = my - this.absY();
+    return Math.sqrt(dx * dx + dy * dy) <= this.radius;
+  }
+}
+
+class Node {
+  constructor(x, y, w, h, title) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.title = title;
+    this.ports = [];
+  }
+
+  draw() {
+    ctx.fillStyle = "#2b2b2b";
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+    ctx.strokeStyle = "#555";
+    ctx.strokeRect(this.x, this.y, this.w, this.h);
+
+    ctx.fillStyle = "#fff";
+    ctx.fillText(this.title, this.x + 8, this.y + 18);
+
+    this.ports.forEach(p => p.draw());
+  }
+
+  hit(mx, my) {
+    return (
+      mx >= this.x && mx <= this.x + this.w &&
+      my >= this.y && my <= this.y + this.h
+    );
+  }
+}
+
+class Connection {
+  constructor(from, to) {
+    this.from = from;
+    this.to = to;
+  }
+
+  draw() {
+    const x1 = this.from.absX();
+    const y1 = this.from.absY();
+    const x2 = this.to.absX();
+    const y2 = this.to.absY();
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.bezierCurveTo(
+      x1 + 50, y1,
+      x2 - 50, y2,
+      x2, y2
+    );
+    ctx.strokeStyle = "#aaa";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+/* =======================
+   Scene
+======================= */
+const nodes = [];
+const connections = [];
+
+function snap(v) {
+  return Math.round(v / GRID_SIZE) * GRID_SIZE;
+}
+
+function createMemory(x, y, name) {
+  const n = new Node(snap(x), snap(y), 140, 60, "MEM: " + name);
+  n.ports.push(new Port(n, n.w - 10, n.h / 2, "out"));
+  nodes.push(n);
+}
+
+function createCommand(x, y, name) {
+  const n = new Node(snap(x), snap(y), 160, 80, name);
+  n.ports.push(new Port(n, 10, n.h / 2, "in"));
+  n.ports.push(new Port(n, n.w - 10, n.h / 2, "out"));
+  nodes.push(n);
+}
+
+/* Initial nodes */
+createMemory(40, 100, "Temp");
+createMemory(40, 200, "Counter");
+
+createCommand(canvas.width - 240, 120, "SET");
+createCommand(canvas.width - 240, 240, "ADD");
+
+/* =======================
+   Interaction
+======================= */
+let draggingNode = null;
+let dragDX = 0;
+let dragDY = 0;
+let linkingPort = null;
+
+canvas.addEventListener("mousedown", e => {
+  const mx = e.offsetX;
+  const my = e.offsetY;
+
+  for (const n of nodes) {
+    for (const p of n.ports) {
+      if (p.hit(mx, my)) {
+        linkingPort = p;
+        return;
+      }
+    }
+  }
+
+  for (const n of nodes) {
+    if (n.hit(mx, my)) {
+      draggingNode = n;
+      dragDX = mx - n.x;
+      dragDY = my - n.y;
+      return;
+    }
+  }
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (draggingNode) {
+    draggingNode.x = snap(e.offsetX - dragDX);
+    draggingNode.y = snap(e.offsetY - dragDY);
+  }
+});
+
+canvas.addEventListener("mouseup", e => {
+  const mx = e.offsetX;
+  const my = e.offsetY;
+
+  if (linkingPort) {
+    for (const n of nodes) {
+      for (const p of n.ports) {
+        if (
+          p !== linkingPort &&
+          p.type !== linkingPort.type &&
+          p.hit(mx, my)
+        ) {
+          const from = linkingPort.type === "out" ? linkingPort : p;
+          const to   = linkingPort.type === "out" ? p : linkingPort;
+          connections.push(new Connection(from, to));
+        }
+      }
+    }
+  }
+
+  draggingNode = null;
+  linkingPort = null;
+});
+
+/* =======================
+   Grid drawing
+======================= */
+function drawGrid() {
+  if (!SHOW_GRID) return;
+
+  ctx.strokeStyle = "#2a2a2a";
+  ctx.lineWidth = 1;
+
+  for (let x = 0; x < canvas.width; x += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+
+  for (let y = 0; y < canvas.height; y += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+/* =======================
+   Render loop
+======================= */
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawGrid();
+  connections.forEach(c => c.draw());
+  nodes.forEach(n => n.draw());
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,246 @@
+{
+    "groups": [
+        {
+            "id": "grp_compare",
+            "label": "Compare",
+            "description": "Узлы сравнения значений",
+            "color": "#ec4899",
+            "steps": [
+                {
+                    "id": "step_operator",
+                    "question": "Выберите тип сравнения:",
+                    "options": [
+                        { "id": "opt_eq",  "label": "== (равно)" },
+                        { "id": "opt_neq", "label": "!= (не равно)" },
+                        { "id": "opt_lt",  "label": "< (меньше)" },
+                        { "id": "opt_lte", "label": "<= (меньше или равно)" },
+                        { "id": "opt_gt",  "label": "> (больше)" },
+                        { "id": "opt_gte", "label": ">= (больше или равно)" }
+                    ]
+                },
+                {
+                    "id": "step_data_type",
+                    "question": "Выберите тип данных для сравнения:",
+                    "options": [
+                        {
+                            "id": "opt_reg_val",
+                            "label": "Reg vs Val",
+                            "description": "Регистр сравнивается со значением"
+                        },
+                        {
+                            "id": "opt_reg_reg",
+                            "label": "Reg vs Reg",
+                            "description": "Регистр сравнивается с регистром"
+                        }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_IfRegValEqu",
+                    "label": "Reg == Val",
+                    "tags": ["opt_reg_val", "opt_eq"]
+                },
+                {
+                    "commandId": "cmd_IfRegValNeq",
+                    "label": "Reg != Val",
+                    "tags": ["opt_reg_val", "opt_neq"]
+                },
+                {
+                    "commandId": "cmd_IfRegValLss",
+                    "label": "Reg < Val",
+                    "tags": ["opt_reg_val", "opt_lt"]
+                },
+                {
+                    "commandId": "cmd_IfRegValLeq",
+                    "label": "Reg <= Val",
+                    "tags": ["opt_reg_val", "opt_lte"]
+                },
+                {
+                    "commandId": "cmd_IfRegValGrt",
+                    "label": "Reg > Val",
+                    "tags": ["opt_reg_val", "opt_gt"]
+                },
+                {
+                    "commandId": "cmd_IfRegValGeq",
+                    "label": "Reg >= Val",
+                    "tags": ["opt_reg_val", "opt_gte"]
+                },
+                {
+                    "commandId": "cmd_IfRegRegEqu",
+                    "label": "Reg == Reg",
+                    "tags": ["opt_reg_reg", "opt_eq"]
+                },
+                {
+                    "commandId": "cmd_IfRegRegNeq",
+                    "label": "Reg != Reg",
+                    "tags": ["opt_reg_reg", "opt_neq"]
+                },
+                {
+                    "commandId": "cmd_IfRegRegLss",
+                    "label": "Reg < Reg",
+                    "tags": ["opt_reg_reg", "opt_lt"]
+                },
+                {
+                    "commandId": "cmd_IfRegRegLeq",
+                    "label": "Reg <= Reg",
+                    "tags": ["opt_reg_reg", "opt_lte"]
+                },
+                {
+                    "commandId": "cmd_IfRegRegGrt",
+                    "label": "Reg > Reg",
+                    "tags": ["opt_reg_reg", "opt_gt"]
+                },
+                {
+                    "commandId": "cmd_IfRegRegGeq",
+                    "label": "Reg >= Reg",
+                    "tags": ["opt_reg_reg", "opt_gte"]
+                }
+            ]
+        },
+        {
+            "id": "grp_math",
+            "label": "Math Operation",
+            "description": "Математические операции над регистрами",
+            "color": "#f59e0b",
+            "steps": [
+                {
+                    "id": "step_operation",
+                    "question": "Выберите операцию:",
+                    "options": [
+                        { "id": "opt_add", "label": "+ (сложение)" },
+                        { "id": "opt_sub", "label": "- (вычитание)" },
+                        { "id": "opt_mul", "label": "× (умножение)" },
+                        { "id": "opt_div", "label": "÷ (деление)" },
+                        { "id": "opt_inc", "label": "++ (инкремент)" },
+                        { "id": "opt_dec", "label": "-- (декремент)" }
+                    ]
+                },
+                {
+                    "id": "step_operands",
+                    "question": "Выберите тип операндов:",
+                    "options": [
+                        { "id": "opt_reg_val_m", "label": "Reg и Val" },
+                        { "id": "opt_reg_reg_m", "label": "Reg и Reg" }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_AddRegVal",
+                    "label": "Reg + Val",
+                    "tags": ["opt_reg_val_m", "opt_add"]
+                },
+                {
+                    "commandId": "cmd_SubRegVal",
+                    "label": "Reg - Val",
+                    "tags": ["opt_reg_val_m", "opt_sub"]
+                },
+                {
+                    "commandId": "cmd_AddRegReg",
+                    "label": "Reg + Reg",
+                    "tags": ["opt_reg_reg_m", "opt_add"]
+                },
+                {
+                    "commandId": "cmd_SubRegReg",
+                    "label": "Reg - Reg",
+                    "tags": ["opt_reg_reg_m", "opt_sub"]
+                },
+                {
+                    "commandId": "cmd_MulRegReg",
+                    "label": "Reg × Reg",
+                    "tags": ["opt_reg_reg_m", "opt_mul"]
+                },
+                {
+                    "commandId": "cmd_DivRegReg",
+                    "label": "Reg ÷ Reg",
+                    "tags": ["opt_reg_reg_m", "opt_div"]
+                },
+                {
+                    "commandId": "cmd_MulRegVal",
+                    "label": "Reg × Val",
+                    "tags": ["opt_reg_val_m", "opt_mul"]
+                },
+                {
+                    "commandId": "cmd_DivRegVal",
+                    "label": "Reg ÷ Val",
+                    "tags": ["opt_reg_val_m", "opt_div"]
+                },
+                {
+                    "commandId": "cmd_IncReg",
+                    "label": "Reg ++",
+                    "tags": ["opt_inc"]
+                },
+                {
+                    "commandId": "cmd_DecReg",
+                    "label": "Reg --",
+                    "tags": ["opt_dec"]
+                }
+            ]
+        },
+        {
+            "id": "grp_log",
+            "label": "Logic Operation",
+            "description": "Логические операции над регистрами",
+            "color": "#f59e0b",
+            "steps": [
+                {
+                    "id": "step_operat",
+                    "question": "Выберите операцию:",
+                    "options": [
+                        { "id": "opt_not", "label": "! (not)" },
+                        { "id": "opt_lshift", "label": "<< (сдвиг влево)" },
+                        { "id": "opt_rshift", "label": ">> (сдвиг вправо)" },
+                        { "id": "opt_and", "label": "&& (лог И)" },
+						{ "id": "opt_or", "label": "|| (лог ИЛИ)" }
+                    ]
+                },
+                {
+                    "id": "step_operan",
+                    "question": "Выберите тип операндов:",
+                    "options": [
+                        { "id": "opt_reg_val_l", "label": "Reg и Val" },
+                        { "id": "opt_reg_reg_l", "label": "Reg и Reg" }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_NotReg",
+                    "label": "! Reg",
+                    "tags": ["opt_not"]
+                },
+                {
+                    "commandId": "cmd_ShiftLeftReg",
+                    "label": "Reg <<",
+                    "tags": ["opt_lshift"]
+                },
+                {
+                    "commandId": "cmd_ShiftRightReg",
+                    "label": "Reg >>",
+                    "tags": ["opt_rshift"]
+                },
+                {
+                    "commandId": "cmd_AndRegVal",
+                    "label": "Reg && Val",
+                    "tags": ["opt_reg_val_l", "opt_and"]
+                },
+                {
+                    "commandId": "cmd_AndRegReg",
+                    "label": "Reg && Reg",
+                    "tags": ["opt_reg_reg_l", "opt_and"]
+                },
+                {
+                    "commandId": "cmd_OrRegVal",
+                    "label": "Reg || Val",
+                    "tags": ["opt_reg_val_l", "opt_or"]
+                },
+                {
+                    "commandId": "cmd_OrRegReg",
+                    "label": "Reg || Reg",
+                    "tags": ["opt_reg_reg_l", "opt_or"]
+                }
+            ]
+        }
+    ]
+}

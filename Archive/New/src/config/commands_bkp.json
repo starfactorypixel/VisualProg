@@ -1,0 +1,292 @@
+[
+    {
+        "id": "cmd_start",
+        "name": "Start",
+        "type": "event",
+        "visual": {
+            "color": "#10b981",
+            "icon": "play"
+        },
+        "inputs": [],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_function",
+        "name": "Function",
+        "type": "function",
+        "visual": {
+            "color": "#8b5cf6",
+            "icon": "code"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_log",
+        "name": "Print to Console",
+        "type": "function",
+        "visual": {
+            "color": "#3b82f6",
+            "icon": "terminal"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "data_in",
+                "name": "Message",
+                "type": "string"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            }
+        ]
+    },
+    {
+        "id": "cmd_math_add",
+        "name": "Add Numbers",
+        "type": "function",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "op1",
+                "name": "A",
+                "type": "number"
+            },
+            {
+                "id": "op2",
+                "name": "B",
+                "type": "number"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "name": "Next",
+                "type": "execution"
+            },
+            {
+                "id": "res",
+                "name": "Result",
+                "type": "number"
+            }
+        ]
+    },
+    {
+        "id": "cmd_sub",
+        "name": "Subtract",
+        "category": "Math",
+        "type": "command",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "type": "execution",
+                "name": "Prev"
+            },
+            {
+                "id": "op1",
+                "type": "Number",
+                "name": "A"
+            },
+            {
+                "id": "op2",
+                "type": "Number",
+                "name": "B"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "type": "execution",
+                "name": "Next"
+            },
+            {
+                "id": "res",
+                "type": "Number",
+                "name": "Result"
+            }
+        ]
+    },
+    {
+        "id": "cmd_mul",
+        "name": "Multiply",
+        "category": "Math",
+        "type": "command",
+        "visual": {
+            "color": "#f59e0b"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "type": "execution",
+                "name": "Prev"
+            },
+            {
+                "id": "op1",
+                "type": "Number",
+                "name": "A"
+            },
+            {
+                "id": "op2",
+                "type": "Number",
+                "name": "B"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "type": "execution",
+                "name": "Next"
+            },
+            {
+                "id": "res",
+                "type": "Number",
+                "name": "Result"
+            }
+        ]
+    },
+    {
+        "id": "cmd_eq",
+        "name": "Equals",
+        "category": "Logic",
+        "type": "command",
+        "visual": {
+            "color": "#ec4899"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "type": "execution",
+                "name": "Prev"
+            },
+            {
+                "id": "op1",
+                "type": "Number",
+                "name": "A"
+            },
+            {
+                "id": "op2",
+                "type": "Number",
+                "name": "B"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "type": "execution",
+                "name": "Next"
+            },
+            {
+                "id": "res",
+                "type": "Boolean",
+                "name": "Result"
+            }
+        ]
+    },
+    {
+        "id": "cmd_gt",
+        "name": "Greater Than",
+        "category": "Logic",
+        "type": "command",
+        "visual": {
+            "color": "#ec4899"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "type": "execution",
+                "name": "Prev"
+            },
+            {
+                "id": "op1",
+                "type": "Number",
+                "name": "A"
+            },
+            {
+                "id": "op2",
+                "type": "Number",
+                "name": "B"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_out",
+                "type": "execution",
+                "name": "Next"
+            },
+            {
+                "id": "res",
+                "type": "Boolean",
+                "name": "Result"
+            }
+        ]
+    },
+    {
+        "id": "cmd_if",
+        "name": "IF",
+        "type": "function",
+        "visual": {
+            "color": "#3b82f6",
+            "icon": "terminal"
+        },
+        "inputs": [
+            {
+                "id": "exec_in",
+                "name": "Prev",
+                "type": "execution"
+            },
+            {
+                "id": "condition",
+                "name": "Condition",
+                "type": "boolean"
+            }
+        ],
+        "outputs": [
+            {
+                "id": "exec_true",
+                "name": "TRUE",
+                "type": "execution"
+            },
+            {
+                "id": "exec_false",
+                "name": "FALSE",
+                "type": "execution"
+            }
+        ]
+    }
+]

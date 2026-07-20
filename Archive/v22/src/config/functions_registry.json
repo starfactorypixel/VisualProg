@@ -1,0 +1,10 @@
+{
+  "functions": [
+    {
+      "id": "fn_example",
+      "file": "functions/example.json",
+      "name": "Example Function",
+      "description": "Пример функции — замените на свои данные"
+    }
+  ]
+}

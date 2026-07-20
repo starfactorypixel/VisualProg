@@ -1,0 +1,37 @@
+{
+    "languages": [
+        {
+            "id": "c",
+            "name": "C Code (.c)",
+            "extension": "c",
+            "boilerplate": {
+                "start": "#include <stdio.h>\n\nint main() {\n",
+                "end": "\n    return 0;\n}"
+            },
+            "nodes": {
+                "cmd_start": "// Start of program",
+                "cmd_log": "    printf(\"%s\\n\", {text});",
+                "cmd_add": "    // Add operation (result used via data connection)",
+                "cmd_var_def": "    {type} {name} = {value};"
+            },
+            "types": {
+                "String": "char*",
+                "Number": "int",
+                "Boolean": "int"
+            }
+        },
+        {
+            "id": "asm",
+            "name": "Assembly x86 (.asm)",
+            "extension": "asm",
+            "boilerplate": {
+                "start": "section .data\n    format db \"%s\", 10, 0\n\nsection .text\n    global main\n    extern printf\n\nmain:\n",
+                "end": "\n    mov rax, 60\n    xor rdi, rdi\n    syscall"
+            },
+            "nodes": {
+                "cmd_start": "    ; Start",
+                "cmd_log": "    ; Log\n    mov rdi, format\n    mov rsi, {text}\n    xor rax, rax\n    call printf"
+            }
+        }
+    ]
+}
