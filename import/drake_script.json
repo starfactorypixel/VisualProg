@@ -1,0 +1,455 @@
+{
+  "opcodes"  : [
+    {
+      "code"  : "0x01",
+      "length": 6,
+      "name"  : "ScriptInit",
+      "format": [
+        {"name": "mode", "type": "enum", "enum": "modeType"},
+        {"name": "d1", "type": "uint8", "print": "hex:2"},
+        {"name": "d2", "type": "uint8", "print": "hex:2"},
+        {"name": "d3", "type": "uint8", "print": "hex:2"},
+        {"name": "d4", "type": "uint8", "print": "hex:2"}
+      ]
+    },
+    {
+      "code"  : "0x02",
+      "length": 4,
+      "name"  : "TriggerParseReg",
+      "format": [
+        {"name": "reg",    "type": "reg"                      },
+        {"name": "type",   "type": "enum",  "enum": "dataType"},
+        {"name": "offset", "type": "uint8"                    }
+      ]
+    },
+    {
+      "code"  : "0x03",
+      "length": 7,
+      "name"  : "SetScriptArgVal",
+      "format": [
+        {"name": "id", "type": "uint16", "print": "hex:4"},
+        {"name": "d1", "type": "uint8",  "print": "hex:2"},
+        {"name": "d2", "type": "uint8",  "print": "hex:2"},
+        {"name": "d3", "type": "uint8",  "print": "hex:2"},
+        {"name": "d4", "type": "uint8",  "print": "hex:2"}
+      ]
+    },
+    {
+      "code"  : "0x04",
+      "length": 7,
+      "name"  : "SetScriptArgReg8",
+      "format": [
+        {"name": "id",  "type": "uint16", "print": "hex:4"},
+        {"name": "reg", "type": "reg"                     },
+        {"name": "reg", "type": "reg"                     },
+        {"name": "reg", "type": "reg"                     },
+        {"name": "reg", "type": "reg"                     }
+      ]
+    },
+    {
+      "code"  : "0x05",
+      "length": 4,
+      "name"  : "SetScriptArgReg32",
+      "format": [
+        {"name": "id",  "type": "uint16", "print": "hex:4"},
+        {"name": "reg", "type": "reg"                     }
+      ]
+    },
+    {
+      "code"  : "0x10",
+      "length": 8,
+      "name"  : "IfRegValEqu",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "val",  "type": "int32" },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x11",
+      "length": 5,
+      "name"  : "IfRegRegEqu",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "reg",  "type": "reg"   },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x12",
+      "length": 8,
+      "name"  : "IfRegValNeq",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "val",  "type": "int32" },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x13",
+      "length": 5,
+      "name"  : "IfRegRegNeq",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "reg",  "type": "reg"   },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x14",
+      "length": 8,
+      "name"  : "IfRegValLss",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "val",  "type": "int32" },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x15",
+      "length": 5,
+      "name"  : "IfRegRegLss",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "reg",  "type": "reg"   },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x16",
+      "length": 8,
+      "name"  : "IfRegValLeq",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "val",  "type": "int32" },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x17",
+      "length": 5,
+      "name"  : "IfRegRegLeq",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "reg",  "type": "reg"   },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x18",
+      "length": 8,
+      "name"  : "IfRegValGtr",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "val",  "type": "int32" },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x19",
+      "length": 5,
+      "name"  : "IfRegRegGtr",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "reg",  "type": "reg"   },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x1A",
+      "length": 8,
+      "name"  : "IfRegValGeq",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "val",  "type": "int32" },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x1B",
+      "length": 5,
+      "name"  : "IfRegRegGeq",
+      "format": [
+        {"name": "reg",  "type": "reg"   },
+        {"name": "reg",  "type": "reg"   },
+        {"name": "jump", "type": "uint16"}
+      ]
+    },
+    {
+      "code"  : "0x30",
+      "length": 6,
+      "name"  : "SetRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x31",
+      "length": 3,
+      "name"  : "SetRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x40",
+      "length": 2,
+      "name"  : "IncReg",
+      "format": [ {"name": "reg", "type": "reg"} ]
+    },
+    {
+      "code"  : "0x41",
+      "length": 2,
+      "name"  : "DecReg",
+      "format": [ {"name": "reg", "type": "reg"} ]
+    },
+    {
+      "code"  : "0x42",
+      "length": 2,
+      "name"  : "NegReg",
+      "format": [ {"name": "reg", "type": "reg"} ]
+    },
+    {
+      "code"  : "0x43",
+      "length": 6,
+      "name"  : "AddRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x44",
+      "length": 3,
+      "name"  : "AddRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x45",
+      "length": 6,
+      "name"  : "SubRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x46",
+      "length": 3,
+      "name"  : "SubRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x47",
+      "length": 6,
+      "name"  : "MulRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x48",
+      "length": 3,
+      "name"  : "MulRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x49",
+      "length": 6,
+      "name"  : "DivRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x4A",
+      "length": 3,
+      "name"  : "DivRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x4B",
+      "length": 6,
+      "name"  : "ModRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x4C",
+      "length": 3,
+      "name"  : "ModRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x60",
+      "length": 2,
+      "name"  : "NotReg",
+      "format": [ {"name": "reg", "type": "reg"} ]
+    },
+    {
+      "code"  : "0x61",
+      "length": 6,
+      "name"  : "AndRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x62",
+      "length": 3,
+      "name"  : "AndRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x63",
+      "length": 6,
+      "name"  : "OrRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x64",
+      "length": 3,
+      "name"  : "OrRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x65",
+      "length": 6,
+      "name"  : "XorRegVal",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "val", "type": "int32"}
+      ]
+    },
+    {
+      "code"  : "0x66",
+      "length": 3,
+      "name"  : "XorRegReg",
+      "format": [
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    },
+    {
+      "code"  : "0x70",
+      "length": 3,
+      "name"  : "ShiftLeftReg",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "cnt", "type": "uint8"}
+      ]
+    },
+    {
+      "code"  : "0x71",
+      "length": 3,
+      "name"  : "ShiftRightReg",
+      "format": [
+        {"name": "reg", "type": "reg"  },
+        {"name": "cnt", "type": "uint8"}
+      ]
+    },
+    {
+      "code"  : "0x80",
+      "length": 3,
+      "name"  : "Goto",
+      "format": [ {"name": "jump", "type": "uint16"} ]
+    },
+    {
+      "code"  : "0x81",
+      "length": 7,
+      "name"  : "Run",
+      "format": [ {"name": "id", "type": "uint16", "print": "hex:4"} ]
+    },
+    {"code": "0x82", "length": 1, "name": "Exit"},
+    {
+      "code"  : "0xA0",
+      "length": 11,
+      "name"  : "CanSendRaw11",
+      "format": [
+        {"name": "CanId", "type": "can_id"                  },
+        {"name": "d0",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d1",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d2",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d3",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d4",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d5",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d6",    "type": "uint8",  "print": "hex:2"},
+        {"name": "d7",    "type": "uint8",  "print": "hex:2"}
+      ]
+    },
+    {
+      "code"  : "0xA1",
+      "length": 8,
+      "name"  : "CanSendRegVal11",
+      "format": [
+        {"name": "CanId", "type": "can_id"},
+        {"name": "fId", "type": "uint8", "print": "hex:2"},
+        {"name": "type", "type": "enum", "enum": "dataType"},
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"},
+        {"name": "reg", "type": "reg"}
+      ]
+    }
+  ],
+  "registers": {
+    "0"  : "DUMMY",
+    "1"  : "SCRIPT_ID",
+    "2"  : "DATA1",
+    "3"  : "DATA2",
+    "4"  : "DATA3",
+    "5"  : "DATA4",
+    "6"  : "A",
+    "7"  : "B",
+    "8"  : "C",
+    "9"  : "D",
+    "10" : "E",
+    "11" : "F",
+    "12" : "G",
+    "13" : "H",
+    "14" : "I",
+    "255": "-"
+  },
+  "enums"    : {
+    "dataType": {
+      "0": "byte",
+      "1": "uint8",
+      "2": "int8",
+      "3": "uint16",
+      "4": "int16",
+      "5": "uint32",
+      "6": "int32"
+    },
+    "modeType": {"0": "4:uint8", "1": "1:int32"}
+  }
+}

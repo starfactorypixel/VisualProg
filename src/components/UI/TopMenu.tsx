@@ -5,9 +5,27 @@ import { CodeGenerator } from '../../utils/CodeGenerator';
 
 export const TopMenu: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
-    const { nodes, connections, setData, magneticGridMode, toggleMagneticGrid: _toggleMagneticGrid, undo, redo, canUndo, canRedo } = useEditorStore();
+    const { nodes, connections, setData, loadTemplate, magneticGridMode, toggleMagneticGrid: _toggleMagneticGrid, undo, redo, canUndo, canRedo } = useEditorStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadType, setUploadType] = useState<'project' | 'template'>('project');
+
+    const handleExport = async () => {
+        const template = useEditorStore.getState().activeTemplate;
+        if (!template) {
+            alert('Сначала загрузите шаблон языка: File → Load Template...');
+            return;
+        }
+        const generator = new CodeGenerator(nodes, connections, template);
+        const code = await generator.generate();
+
+        const blob = new Blob([code], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `program.${template.extension || 'txt'}`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const handleAction = (action: string) => {
         console.log('handleAction called with:', action);
@@ -35,9 +53,12 @@ export const TopMenu: React.FC = () => {
             setUploadType('project');
             setTimeout(() => fileInputRef.current?.click(), 0);
         }
-        else if (action === 'export:template') {
+        else if (action === 'file:load_template') {
             setUploadType('template');
             setTimeout(() => fileInputRef.current?.click(), 0);
+        }
+        else if (action === 'file:export') {
+            handleExport();
         }
         else if (action === 'view:toggle_magnetic_grid') {
             const store = useEditorStore.getState();
@@ -55,7 +76,8 @@ export const TopMenu: React.FC = () => {
                     children: [
                         ...(item.children || []),
                         { label: '---', action: 'none' },
-                        { label: 'Export with Template...', action: 'export:template' }
+                        { label: 'Load Template...', action: 'file:load_template' },
+                        { label: 'Export', action: 'file:export' }
                     ]
                 };
             }
@@ -90,19 +112,10 @@ export const TopMenu: React.FC = () => {
                         alert('Invalid project file format');
                     }
                 } else if (uploadType === 'template') {
-                    if (data.boilerplate && data.nodes) {
-                        const generator = new CodeGenerator(nodes, connections, data);
-                        const code = await generator.generate();
-
-                        const blob = new Blob([code], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `program.${data.extension || 'txt'}`;
-                        a.click();
-                        URL.revokeObjectURL(url);
+                    if (data.boilerplate && (data.commands || data.nodes)) {
+                        loadTemplate(data);
                     } else {
-                        alert('Invalid export template format');
+                        alert('Invalid template format');
                     }
                 }
 

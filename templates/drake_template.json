@@ -6,95 +6,1570 @@
         "start": "",
         "end": ""
     },
-    "weights": {
-        "cmd_ScriptInit": 6,
-        "cmd_FunctionStart": 0,
-        "cmd_function": 0,
-        "cmd_TriggerParseReg": 4,
-        "cmd_SetScriptArgVal": 7,
-        "cmd_SetScriptArgReg8": 7,
-        "cmd_SetScriptArgReg32": 8,
-        "cmd_IfRegValEqu": 8,
-        "cmd_IfRegValNeq": 8,
-        "cmd_IfRegValLss": 8,
-        "cmd_IfRegValLeq": 8,
-        "cmd_IfRegValGtr": 8,
-        "cmd_IfRegValGeq": 8,
-        "cmd_IfRegRegEqu": 5,
-        "cmd_IfRegReglNeq": 5,
-        "cmd_IfRegRegLss": 5,
-        "cmd_IfRegRegLeq": 5,
-        "cmd_IfRegRegGtr": 5,
-        "cmd_IfRegRegGeq": 5,
-        "cmd_SetRegVal": 6,
-        "cmd_SetRegReg": 3,
-        "cmd_IncReg": 2,
-        "cmd_DecReg": 2,
-        "cmd_NotReg": 2,
-        "cmd_ShiftLeftReg": 3,
-        "cmd_ShiftRightReg": 3,
-        "cmd_AndRegVal": 6,
-        "cmd_AndRegReg": 3,
-        "cmd_OrRegVal": 6,
-        "cmd_OrRegReg": 3,
-        "cmd_AddRegVal": 6,
-        "cmd_SubRegVal": 6,
-        "cmd_MulRegVal": 6,
-        "cmd_DivRegVal": 6,
-        "cmd_AddRegReg": 3,
-        "cmd_SubRegReg": 3,
-        "cmd_MulRegReg": 3,
-        "cmd_DivRegReg": 3,
-        "cmd_CanSendRaw11": 11,
-        "cmd_CanSendRegVal11": 8,
-        "cmd_Goto": 3,
-        "cmd_End": 0,
-        "cmd_Exit": 1
+    "useHex": true,
+    "typeSizes": {
+        "uint8": 1,
+        "uint16": 2,
+        "int32": 4,
+        "reg": 1,
+        "enum": 1,
+        "can_id": 2
     },
-    "nodes": {
-        "cmd_ScriptInit": "\n{self:hex2} : # ScriptInit()\n            0x01 0x00 0x00 0x00 0x00 0x00",
-        "cmd_FunctionStart": "\n{self:hex2} : # FunctionStart()",
-        "cmd_function": "\n{self:hex2} : # function()",
-        "cmd_TriggerParseReg": "\n{self:hex2} : # TriggerParseReg({res}, {op1:dec}, {op2:dec})\n            0x02 {res} {op1} {op2}",
-        "cmd_SetScriptArgVal": "\n{self:hex2} : # SetScriptArgVal({op1:dec}, {op2:dec}, {op3:dec}, {op4:dec}, {op5:dec})\n            0x03 {op1:hex2} {op2} {op3} {op4} {op5}",
-        "cmd_SetScriptArgReg8": "\n{self:hex2} : # SetScriptArgReg8({op1:dec}, {op2:dec}, {op3:dec}, {op4:dec}, {op5:dec})\n            0x04 {op1:hex2} {op2} {op3} {op4} {op5}",
-        "cmd_SetScriptArgReg32": "\n{self:hex2} : # SetScriptArgReg32({op1:dec}, {op2:dec})\n            0x05 {op1:hex2} {op2}",
-        "cmd_IfRegValEqu": "\n{self:hex2} : # IfRegValEqu({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x06 {op1} {op2:hex4} {exec_false:address:hex2}",
-        "cmd_IfRegValNeq": "\n{self:hex2} : # IfRegValNeq({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x07 {op1} {op2:hex4} {exec_false:address:hex2}",
-        "cmd_IfRegValLss": "\n{self:hex2} : # IfRegValLss({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x08 {op1} {op2:hex4} {exec_false:address:hex2}",
-        "cmd_IfRegValLeq": "\n{self:hex2} : # IfRegValLeq({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x09 {op1} {op2:hex4} {exec_false:address:hex2}",
-        "cmd_IfRegValGtr": "\n{self:hex2} : # IfRegValGtr({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x0A {op1} {op2:hex4} {exec_false:address:hex2}",
-        "cmd_IfRegValGeq": "\n{self:hex2} : # IfRegValGeq({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x0B {op1} {op2:hex4} {exec_false:address:hex2}",
-        "cmd_IfRegRegEqu": "\n{self:hex2} : # IfRegRegEqu({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x0C {op1} {op2} {exec_false:address:hex2}",
-        "cmd_IfRegReglNeq": "\n{self:hex2} : # IfRegReglNeq({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x0D {op1} {op2} {exec_false:address:hex2}",
-        "cmd_IfRegRegLss": "\n{self:hex2} : # IfRegRegLss({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x0E {op1} {op2} {exec_false:address:hex2}",
-        "cmd_IfRegRegLeq": "\n{self:hex2} : # IfRegRegLeq({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x0F {op1} {op2} {exec_false:address:hex2}",
-        "cmd_IfRegRegGtr": "\n{self:hex2} : # IfRegRegGtr({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x10 {op1} {op2} {exec_false:address:hex2}",
-        "cmd_IfRegRegGeq": "\n{self:hex2} : # IfRegRegGeq({op1:dec}, {op2:dec}, {exec_false:address:hex2})\n            0x11 {op1} {op2} {exec_false:address:hex2}",
-        "cmd_SetRegVal": "\n{self:hex2} : # SetRegVal({res}, {op1:dec})\n            0x12 {res} {op1:hex4}",
-        "cmd_SetRegReg": "\n{self:hex2} : # SetRegReg({res}, {op1:dec})\n            0x13 {res} {op1}",
-        "cmd_IncReg": "\n{self:hex2} : # IncReg({in})\n            0x14 {in}",
-        "cmd_DecReg": "\n{self:hex2} : # DecReg({in})\n            0x15 {in}",
-        "cmd_NotReg": "\n{self:hex2} : # NotReg({in})\n            0x16 {in}",
-        "cmd_ShiftLeftReg": "\n{self:hex2} : # ShiftLeftReg({inR}, {inC})\n            0x17 {inR} {inC}",
-        "cmd_ShiftRightReg": "\n{self:hex2} : # ShiftRightReg({inR}, {inC})\n            0x18 {inR} {inC}",
-        "cmd_AndRegVal": "\n{self:hex2} : # AndRegVal({inR}, {inC:dec})\n            0x19 {inR} {inC:hex4}",
-        "cmd_AndRegReg": "\n{self:hex2} : # AndRegReg({inR}, {inC})\n            0x1A {inR} {inC}",
-        "cmd_OrRegVal": "\n{self:hex2} : # OrRegVal({inR}, {inC:dec})\n            0x1B {inR} {inC:hex4}",
-        "cmd_OrRegReg": "\n{self:hex2} : # OrRegReg({inR}, {inC})\n            0x1C {inR} {inC}",
-        "cmd_AddRegVal": "\n{self:hex2} : # AddRegVal({inR}, {inC:dec})\n            0x1D {inR} {inC:hex4}",
-        "cmd_SubRegVal": "\n{self:hex2} : # SubRegVal({inR}, {inC:dec})\n            0x1E {inR} {inC:hex4}",
-        "cmd_MulRegVal": "\n{self:hex2} : # MulRegVal({inR}, {inC:dec})\n            0x1F {inR} {inC:hex4}",
-        "cmd_DivRegVal": "\n{self:hex2} : # DivRegVal({inR}, {inC:dec})\n            0x20 {inR} {inC:hex4}",
-        "cmd_AddRegReg": "\n{self:hex2} : # AddRegReg({inR}, {inC})\n            0x21 {inR} {inC}",
-        "cmd_SubRegReg": "\n{self:hex2} : # SubRegReg({inR}, {inC})\n            0x22 {inR} {inC}",
-        "cmd_MulRegReg": "\n{self:hex2} : # MulRegReg({inR}, {inC})\n            0x23 {inR} {inC}",
-        "cmd_DivRegReg": "\n{self:hex2} : # DivRegReg({inR}, {inC})\n            0x24 {inR} {inC}",
-        "cmd_CanSendRaw11": "\n{self:hex2} : # CanSendRaw11({op1:dec}, {op2:dec}, {op3:dec}, {op4:dec}, {op5:dec}, {op6:dec}, {op7:dec}, {op8:dec}, {op9:dec})\n            0x25 {op1:hex2} {op2} {op3} {op4} {op5} {op6} {op7} {op8} {op9}",
-        "cmd_CanSendRegVal11": "\n{self:hex2} : # CanSendRegVal11({op1:dec}, {op2:dec}, {op3:dec}, {op4:dec}, {op5:dec}, {op6:dec})\n            0x26 {op1:hex2} {op2} {op3} {op4} {op5} {op6}",
-        "cmd_Goto": "\n{self:hex2} : # Goto({exec_out:address:hex2})\n            0x27 {exec_out:address:hex2}",
-        "cmd_End": "\n{self:hex2} : # End()\n            ",
-        "cmd_Exit": "\n{self:hex2} : # Exit()\n            0x28"
+    "typeMap": {
+        "uint8": "number",
+        "uint16": "number",
+        "int32": "number",
+        "reg": "register",
+        "enum": "number",
+        "can_id": "number"
     },
-    "useHex": true
+    "dataTypes": [
+        {
+            "name": "string",
+            "color": "#fcd34d"
+        },
+        {
+            "name": "number",
+            "color": "#60a5fa"
+        },
+        {
+            "name": "register",
+            "color": "#10b981",
+            "options": [
+                {
+                    "value": "0x01",
+                    "label": "REG_SCRIPT_ID - ID текущего скрипта"
+                },
+                {
+                    "value": "0x02",
+                    "label": "REG_PARAM0 - Параметры, переданные в скрипт"
+                },
+                {
+                    "value": "0x03",
+                    "label": "REG_PARAM1 - Параметры, переданные в скрипт"
+                },
+                {
+                    "value": "0x04",
+                    "label": "REG_PARAM2 - Параметры, переданные в скрипт"
+                },
+                {
+                    "value": "0x05",
+                    "label": "REG_PARAM3 - Параметры, переданные в скрипт"
+                },
+                {
+                    "value": "0x06",
+                    "label": "RA - Универсальный регистр"
+                },
+                {
+                    "value": "0x07",
+                    "label": "RB - Универсальный регистр"
+                },
+                {
+                    "value": "0x08",
+                    "label": "RC - Универсальный регистр"
+                },
+                {
+                    "value": "0x09",
+                    "label": "RD - Универсальный регистр"
+                },
+                {
+                    "value": "0x0A",
+                    "label": "RE - Универсальный регистр"
+                },
+                {
+                    "value": "0x0B",
+                    "label": "RF - Универсальный регистр"
+                },
+                {
+                    "value": "0x0C",
+                    "label": "RG - Универсальный регистр"
+                },
+                {
+                    "value": "0x0D",
+                    "label": "RH - Универсальный регистр"
+                },
+                {
+                    "value": "0x0E",
+                    "label": "RI - Универсальный регистр"
+                }
+            ]
+        },
+        {
+            "name": "boolean",
+            "color": "#f87171",
+            "options": [
+                {
+                    "value": "0xs00",
+                    "label": "FALSE"
+                },
+                {
+                    "value": "0x01",
+                    "label": "TRUE"
+                }
+            ]
+        },
+        {
+            "name": "execution",
+            "color": "#ffffff"
+        }
+    ],
+    "structures": [
+        {
+            "name": "Vector2",
+            "fields": [
+                {
+                    "name": "x",
+                    "type": "number"
+                },
+                {
+                    "name": "y",
+                    "type": "number"
+                }
+            ]
+        }
+    ],
+    "commands": {
+        "cmd_ScriptInit": {
+            "name": "Start",
+            "nodeType": "event",
+            "visual": {
+                "color": "#10b981",
+                "icon": "play"
+            },
+            "control": {
+                "in": null,
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "mode",
+                    "type": "enum",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d1",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d2",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d3",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d4",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                }
+            ],
+            "opcode": "0x01",
+            "length": 6
+        },
+        "cmd_FunctionStart": {
+            "name": "Begin",
+            "nodeType": "event",
+            "visual": {
+                "color": "#10b981",
+                "icon": "play"
+            },
+            "control": {
+                "in": null,
+                "out": "exec_out"
+            }
+        },
+        "cmd_function": {
+            "name": "Function",
+            "nodeType": "function",
+            "visual": {
+                "color": "#8b5cf6",
+                "icon": "code"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            }
+        },
+        "cmd_TriggerParseReg": {
+            "name": "Parsing",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Result (reg)",
+                    "type": "reg",
+                    "dir": "out",
+                    "portId": "res"
+                },
+                {
+                    "name": "Type (num)",
+                    "type": "enum",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Offset (num)",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op2"
+                }
+            ],
+            "opcode": "0x02",
+            "length": 4
+        },
+        "cmd_SetScriptArgVal": {
+            "name": "SetScriptArgVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "ID",
+                    "type": "uint16",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Data 0",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "Data 1",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op3"
+                },
+                {
+                    "name": "Data 2",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op4"
+                },
+                {
+                    "name": "Data 3",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op5"
+                }
+            ],
+            "opcode": "0x03",
+            "length": 7
+        },
+        "cmd_SetScriptArgReg8": {
+            "name": "SetScriptArgReg8",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "ID",
+                    "type": "uint16",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register 0",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "Register 1",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op3"
+                },
+                {
+                    "name": "Register 2",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op4"
+                },
+                {
+                    "name": "Register 3",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op5"
+                }
+            ],
+            "opcode": "0x04",
+            "length": 7
+        },
+        "cmd_SetScriptArgReg32": {
+            "name": "SetScriptArgReg32",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "ID",
+                    "type": "uint16",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register 0",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                }
+            ],
+            "opcode": "0x05",
+            "length": 4
+        },
+        "cmd_IfRegValEqu": {
+            "name": "If (Reg = Val)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Value",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x10",
+            "length": 8
+        },
+        "cmd_IfRegValNeq": {
+            "name": "If (Reg != Val)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Value",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x12",
+            "length": 8
+        },
+        "cmd_IfRegValLss": {
+            "name": "If (Reg < Val)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Value",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x14",
+            "length": 8
+        },
+        "cmd_IfRegValLeq": {
+            "name": "If (Reg <= Val)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Value",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x16",
+            "length": 8
+        },
+        "cmd_IfRegValGtr": {
+            "name": "If (Reg > Val)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Value",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x18",
+            "length": 8
+        },
+        "cmd_IfRegValGeq": {
+            "name": "If (Reg >= Val)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Value",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x1A",
+            "length": 8
+        },
+        "cmd_IfRegRegEqu": {
+            "name": "If (Reg = Reg)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x11",
+            "length": 5
+        },
+        "cmd_IfRegRegNeq": {
+            "name": "If (Reg != Reg)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x13",
+            "length": 5
+        },
+        "cmd_IfRegRegLss": {
+            "name": "If (Reg < Reg)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x15",
+            "length": 5
+        },
+        "cmd_IfRegRegLeq": {
+            "name": "If (Reg <= Reg)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x17",
+            "length": 5
+        },
+        "cmd_IfRegRegGtr": {
+            "name": "If (Reg > Reg)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x19",
+            "length": 5
+        },
+        "cmd_IfRegRegGeq": {
+            "name": "If (Reg >= Reg)",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": {
+                    "true": "exec_true",
+                    "false": "exec_false"
+                }
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_false"
+                }
+            ],
+            "opcode": "0x1B",
+            "length": 5
+        },
+        "cmd_SetRegVal": {
+            "name": "Set to Reg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "to Register",
+                    "type": "reg",
+                    "dir": "out",
+                    "portId": "res"
+                },
+                {
+                    "name": "Value from",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "op1"
+                }
+            ],
+            "opcode": "0x30",
+            "length": 6
+        },
+        "cmd_SetRegReg": {
+            "name": "Copy Registers",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register to",
+                    "type": "reg",
+                    "dir": "out",
+                    "portId": "res"
+                },
+                {
+                    "name": "Register from",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op1"
+                }
+            ],
+            "opcode": "0x31",
+            "length": 3
+        },
+        "cmd_IncReg": {
+            "name": "Register++",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "in"
+                }
+            ],
+            "opcode": "0x40",
+            "length": 2
+        },
+        "cmd_DecReg": {
+            "name": "Register--",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "in"
+                }
+            ],
+            "opcode": "0x41",
+            "length": 2
+        },
+        "cmd_NegReg": {
+            "name": "Negate",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "in"
+                }
+            ],
+            "opcode": "0x42",
+            "length": 2
+        },
+        "cmd_NotReg": {
+            "name": "Not",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "in"
+                }
+            ],
+            "opcode": "0x60",
+            "length": 2
+        },
+        "cmd_ShiftLeftReg": {
+            "name": "ShiftLeftReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x70",
+            "length": 3
+        },
+        "cmd_ShiftRightReg": {
+            "name": "ShiftRightReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x71",
+            "length": 3
+        },
+        "cmd_AndRegVal": {
+            "name": "AndRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x61",
+            "length": 6
+        },
+        "cmd_AndRegReg": {
+            "name": "AndRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x62",
+            "length": 3
+        },
+        "cmd_OrRegVal": {
+            "name": "OrRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x63",
+            "length": 6
+        },
+        "cmd_OrRegReg": {
+            "name": "OrRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x64",
+            "length": 3
+        },
+        "cmd_XorRegVal": {
+            "name": "XorRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x65",
+            "length": 6
+        },
+        "cmd_XorRegReg": {
+            "name": "XorRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x66",
+            "length": 3
+        },
+        "cmd_AddRegVal": {
+            "name": "AddRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x43",
+            "length": 6
+        },
+        "cmd_SubRegVal": {
+            "name": "SubRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x45",
+            "length": 6
+        },
+        "cmd_MulRegVal": {
+            "name": "SubRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x47",
+            "length": 6
+        },
+        "cmd_DivRegVal": {
+            "name": "DivRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x49",
+            "length": 6
+        },
+        "cmd_AddRegReg": {
+            "name": "AddRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inR2"
+                }
+            ],
+            "opcode": "0x44",
+            "length": 3
+        },
+        "cmd_SubRegReg": {
+            "name": "SubRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inR2"
+                }
+            ],
+            "opcode": "0x46",
+            "length": 3
+        },
+        "cmd_MulRegReg": {
+            "name": "SubRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inR2"
+                }
+            ],
+            "opcode": "0x48",
+            "length": 3
+        },
+        "cmd_DivRegReg": {
+            "name": "DivRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR1"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inR2"
+                }
+            ],
+            "opcode": "0x4A",
+            "length": 3
+        },
+        "cmd_ModRegVal": {
+            "name": "ModRegVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Count",
+                    "type": "int32",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x4B",
+            "length": 6
+        },
+        "cmd_ModRegReg": {
+            "name": "ModRegReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "inout",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "inC"
+                }
+            ],
+            "opcode": "0x4C",
+            "length": 3
+        },
+        "cmd_CanSendRaw11": {
+            "name": "CanSendRaw11",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "CAN ID",
+                    "type": "can_id",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Data 0",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "Data 1",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op3"
+                },
+                {
+                    "name": "Data 2",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op4"
+                },
+                {
+                    "name": "Data 3",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op5"
+                },
+                {
+                    "name": "Data 4",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op6"
+                },
+                {
+                    "name": "Data 5",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op7"
+                },
+                {
+                    "name": "Data 6",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op8"
+                },
+                {
+                    "name": "Data 7",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op9"
+                }
+            ],
+            "opcode": "0xA0",
+            "length": 11
+        },
+        "cmd_CanSendRegVal11": {
+            "name": "CanSendRegVal11",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "CAN ID",
+                    "type": "can_id",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Func ID",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "Type",
+                    "type": "enum",
+                    "dir": "in",
+                    "portId": "op3"
+                },
+                {
+                    "name": "Register A",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op4"
+                },
+                {
+                    "name": "Register B",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op5"
+                },
+                {
+                    "name": "Register C",
+                    "type": "reg",
+                    "dir": "in",
+                    "portId": "op6"
+                }
+            ],
+            "opcode": "0xA1",
+            "length": 8
+        },
+        "cmd_Goto": {
+            "name": "Goto",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "jump",
+                    "type": "uint16",
+                    "role": "address",
+                    "of": "exec_out"
+                }
+            ],
+            "opcode": "0x80",
+            "length": 3
+        },
+        "cmd_End": {
+            "name": "End",
+            "nodeType": "function",
+            "visual": {
+                "color": "#10b981"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": null
+            },
+            "length": 0
+        },
+        "cmd_Exit": {
+            "name": "Exit",
+            "nodeType": "function",
+            "visual": {
+                "color": "#10b981"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": null
+            },
+            "opcode": "0x82",
+            "length": 1
+        }
+    }
 }

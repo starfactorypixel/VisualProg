@@ -6,7 +6,7 @@ import { VariablesBar } from './components/UI/VariablesBar';
 import { useEditorStore } from './store/useEditorStore';
 
 function App() {
-    const { addNode, scale, pan, setData, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
+    const { addNode, scale, pan, setData, loadTemplate, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
     const canvasWrapperRef = useRef<HTMLDivElement>(null);
     const lastRightClickPos = useRef<{ x: number; y: number } | null>(null);
 
@@ -78,6 +78,21 @@ function App() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes, pan, scale]);
+
+    // Загружаем шаблон по умолчанию (DrakeScript) — палитра нод и типы данных
+    // берутся из него, а не из отдельных статических конфигов.
+    useEffect(() => {
+        fetch('/templates/drake_template.json')
+            .then(res => {
+                if (!res.ok) throw new Error('Template not found');
+                return res.json();
+            })
+            .then(template => loadTemplate(template))
+            .catch(err => {
+                console.error('Failed to load default template:', err);
+                alert('Не удалось загрузить templates/drake_template.json — палитра нод будет пустой.');
+            });
+    }, [loadTemplate]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);

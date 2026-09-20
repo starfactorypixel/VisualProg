@@ -495,6 +495,12 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         return dt ? dt.color : '#828282';
                     };
 
+                    // Порт без подключённого провода — можно ввести локальное значение
+                    // прямо на ноде; CodeGenerator сам подставит его через node.data[portId],
+                    // если связи с дата-нодой нет (см. processNode/{param} в CodeGenerator.ts).
+                    const isInputConnected = (portId: string) =>
+                        connections.some(c => c.toNodeId === data.id && c.toPortId === portId);
+
                     const inputs = definition.inputs || [];
                     const outputs = definition.outputs || [];
 
@@ -532,13 +538,44 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         );
                     };
 
-                    const renderPortRow = (port: any, type: 'input' | 'output') => (
-                        <div key={port.id} className={clsx("flex items-center gap-2 h-4", type === 'output' && "justify-end")}>
-                            {type === 'output' && <span className="text-neutral-400 truncate">{port.name}</span>}
-                            {renderPortDot(port, type)}
-                            {type === 'input' && <span className="text-neutral-400 truncate">{port.name}</span>}
-                        </div>
-                    );
+                    const renderPortRow = (port: any, type: 'input' | 'output') => {
+                        const showValueInput = type === 'input' && !isInputConnected(port.id);
+                        const connectorGap = 22; // отступ инпута от границы ноды, px
+
+                        return (
+                            <div key={port.id} className={clsx("flex items-center gap-2 h-4 relative", type === 'output' && "justify-end")}>
+                                {showValueInput && (
+                                    <>
+                                        {/* Линия-коннектор к точке порта */}
+                                        <div
+                                            className="absolute h-px pointer-events-none"
+                                            style={{
+                                                right: '100%',
+                                                width: connectorGap,
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                backgroundColor: getPortColor(port.type)
+                                            }}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="absolute w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-1 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 z-10"
+                                            style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
+                                            placeholder="…"
+                                            value={data.data?.[port.id] ?? ''}
+                                            onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => e.stopPropagation()}
+                                            title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                                        />
+                                    </>
+                                )}
+                                {type === 'output' && <span className="text-neutral-400 truncate">{port.name}</span>}
+                                {renderPortDot(port, type)}
+                                {type === 'input' && <span className="text-neutral-400 truncate">{port.name}</span>}
+                            </div>
+                        );
+                    };
 
                     const renderRow = (inP: any, outP: any, key: string) => (
                         <div key={key} className="flex justify-between items-center h-4 gap-2">

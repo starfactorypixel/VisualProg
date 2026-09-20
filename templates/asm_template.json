@@ -6,18 +6,114 @@
         "start": "section .data\n    format_str db \"%s\", 10, 0\n    format_num db \"%d\", 10, 0\n\nsection .text\n    global main\n    extern printf\n\nmain:\n",
         "end": "\n    mov rax, 60\n    xor rdi, rdi\n    syscall"
     },
-    "nodes": {
-        "cmd_start": "    ; Start",
-        "cmd_log": "    ; Log\n    mov rdi, format_str\n    mov rsi, {data_in}\n    xor rax, rax\n    call printf",
-        "cmd_math_add": "    ; Add\n    mov eax, {op1}\n    add eax, {op2}",
-        "cmd_sub": "    ; Sub\n    mov eax, {op1}\n    sub eax, {op2}",
-        "cmd_mul": "    ; Mul\n    mov eax, {op1}\n    imul eax, {op2}",
-        "cmd_eq": "    ; Equal\n    mov eax, {op1}\n    cmp eax, {op2}\n    sete al\n    movzx eax, al",
-        "cmd_gt": "    ; Greater Than\n    mov eax, {op1}\n    cmp eax, {op2}\n    setg al\n    movzx eax, al",
-        "cmd_if": "    ; If\n    cmp {condition}, 0\n    je {false_label}",
-        "cmd_FunctionStart": "; --- Begin: {label} ---",
-        "cmd_function": "; --- Function: {label} ---",
-        "cmd_End": "; --- End ---"
-    },
-    "useLabels": true
+    "useLabels": true,
+    "dataTypes": [
+        { "name": "number", "color": "#60a5fa" },
+        { "name": "boolean", "color": "#f87171" },
+        { "name": "execution", "color": "#ffffff" }
+    ],
+    "commands": {
+        "cmd_start": {
+            "name": "Start",
+            "nodeType": "event",
+            "visual": { "color": "#10b981", "icon": "play" },
+            "control": { "in": null, "out": "exec_out" },
+            "template": "    ; Start"
+        },
+        "cmd_log": {
+            "name": "Log",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [ { "name": "Text", "type": "string", "dir": "in", "portId": "data_in" } ],
+            "template": "    ; Log\n    mov rdi, format_str\n    mov rsi, {data_in}\n    xor rax, rax\n    call printf"
+        },
+        "cmd_math_add": {
+            "name": "Add",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Op A", "type": "number", "dir": "in", "portId": "op1" },
+                { "name": "Op B", "type": "number", "dir": "in", "portId": "op2" }
+            ],
+            "template": "    ; Add\n    mov eax, {op1}\n    add eax, {op2}"
+        },
+        "cmd_sub": {
+            "name": "Sub",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Op A", "type": "number", "dir": "in", "portId": "op1" },
+                { "name": "Op B", "type": "number", "dir": "in", "portId": "op2" }
+            ],
+            "template": "    ; Sub\n    mov eax, {op1}\n    sub eax, {op2}"
+        },
+        "cmd_mul": {
+            "name": "Mul",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Op A", "type": "number", "dir": "in", "portId": "op1" },
+                { "name": "Op B", "type": "number", "dir": "in", "portId": "op2" }
+            ],
+            "template": "    ; Mul\n    mov eax, {op1}\n    imul eax, {op2}"
+        },
+        "cmd_eq": {
+            "name": "Equal",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Op A", "type": "number", "dir": "in", "portId": "op1" },
+                { "name": "Op B", "type": "number", "dir": "in", "portId": "op2" }
+            ],
+            "template": "    ; Equal\n    mov eax, {op1}\n    cmp eax, {op2}\n    sete al\n    movzx eax, al"
+        },
+        "cmd_gt": {
+            "name": "Greater Than",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Op A", "type": "number", "dir": "in", "portId": "op1" },
+                { "name": "Op B", "type": "number", "dir": "in", "portId": "op2" }
+            ],
+            "template": "    ; Greater Than\n    mov eax, {op1}\n    cmp eax, {op2}\n    setg al\n    movzx eax, al"
+        },
+        "cmd_if": {
+            "name": "If",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Condition", "type": "number", "dir": "in", "portId": "condition" },
+                { "name": "False label", "type": "number", "dir": "in", "portId": "false_label" }
+            ],
+            "template": "    ; If\n    cmp {condition}, 0\n    je {false_label}"
+        },
+        "cmd_FunctionStart": {
+            "name": "Begin",
+            "nodeType": "event",
+            "visual": { "color": "#10b981", "icon": "play" },
+            "control": { "in": null, "out": "exec_out" },
+            "template": "; --- Begin: {label} ---"
+        },
+        "cmd_function": {
+            "name": "Function",
+            "nodeType": "function",
+            "visual": { "color": "#8b5cf6", "icon": "code" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "; --- Function: {label} ---"
+        },
+        "cmd_End": {
+            "name": "End",
+            "nodeType": "function",
+            "visual": { "color": "#10b981" },
+            "control": { "in": "exec_in", "out": null },
+            "template": "; --- End ---"
+        }
+    }
 }

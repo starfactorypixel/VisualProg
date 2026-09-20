@@ -1,6 +1,10 @@
 import { NodeInstance, Connection } from '../types';
+import { RawTemplate, compileEmission } from './TemplateSchema';
 
-interface ExportConfig {
+// Легаси-вход: файл, где nodes/weights уже готовы (руками написанные старые
+// шаблоны). Основной путь — RawTemplate из TemplateSchema.ts (единый файл
+// шаблона с "commands"), см. compileEmission().
+interface LegacyExportConfig {
     id: string;
     extension: string;
     boilerplate: { start: string; end: string };
@@ -11,10 +15,16 @@ interface ExportConfig {
     useHex?: boolean;
 }
 
+type ExportConfig = RawTemplate | LegacyExportConfig;
+
+// То, что реально лежит в this.config после конструктора: nodes/weights уже
+// гарантированно заполнены (напрямую переданы, либо скомпилированы из "commands").
+type CompiledConfig = ExportConfig & { nodes: Record<string, string>; weights: Record<string, number> };
+
 export class CodeGenerator {
     private nodes: NodeInstance[];
     private connections: Connection[];
-    private config: ExportConfig;
+    private config: CompiledConfig;
     private nodeAddresses: Map<string, number> = new Map();
     private fileCache: Map<string, { nodes: NodeInstance[], connections: Connection[] }> = new Map();
     private loadingFiles: Set<string> = new Set();
@@ -22,7 +32,13 @@ export class CodeGenerator {
     constructor(nodes: NodeInstance[], connections: Connection[], config: ExportConfig) {
         this.nodes = [...nodes];
         this.connections = [...connections];
-        this.config = config;
+        if ('commands' in config && config.commands) {
+            const compiled = compileEmission(config as RawTemplate);
+            this.config = { ...config, nodes: compiled.nodes, weights: compiled.weights };
+        } else {
+            // Легаси-формат: nodes/weights заданы автором шаблона напрямую.
+            this.config = config as CompiledConfig;
+        }
     }
 
     private async loadExternalFile(filePath: string): Promise<{ nodes: NodeInstance[], connections: Connection[] } | null> {

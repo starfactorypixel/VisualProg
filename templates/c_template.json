@@ -6,17 +6,100 @@
         "start": "#include <stdio.h>\n#include <stdbool.h>\n\nint main() {\n",
         "end": "\n    return 0;\n}"
     },
-    "nodes": {
-        "cmd_start": "    // Start",
-        "cmd_log": "    printf(\"%s\\n\", (char*){data_in});",
-        "cmd_math_add": "    // Add",
-        "cmd_sub": "    // Sub",
-        "cmd_mul": "    // Mul",
-        "cmd_eq": "    // Equal",
-        "cmd_gt": "    // Greater Than",
-        "cmd_var_def": "    {type} {name} = {value};",
-        "cmd_assign": "    {name} = {value};",
-        "cmd_if": "    if ({condition}) {",
-        "cmd_if_end": "    }"
+    "dataTypes": [
+        { "name": "string", "color": "#fcd34d" },
+        { "name": "number", "color": "#60a5fa" },
+        { "name": "boolean", "color": "#f87171" },
+        { "name": "execution", "color": "#ffffff" }
+    ],
+    "commands": {
+        "cmd_start": {
+            "name": "Start",
+            "nodeType": "event",
+            "visual": { "color": "#10b981", "icon": "play" },
+            "control": { "in": null, "out": "exec_out" },
+            "template": "    // Start"
+        },
+        "cmd_log": {
+            "name": "Log",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [ { "name": "Text", "type": "string", "dir": "in", "portId": "data_in" } ],
+            "template": "    printf(\"%s\\n\", (char*){data_in});"
+        },
+        "cmd_math_add": {
+            "name": "Add",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "    // Add"
+        },
+        "cmd_sub": {
+            "name": "Sub",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "    // Sub"
+        },
+        "cmd_mul": {
+            "name": "Mul",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "    // Mul"
+        },
+        "cmd_eq": {
+            "name": "Equal",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "    // Equal"
+        },
+        "cmd_gt": {
+            "name": "Greater Than",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "    // Greater Than"
+        },
+        "cmd_var_def": {
+            "name": "Define Variable",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Type", "type": "string", "dir": "in", "portId": "type" },
+                { "name": "Name", "type": "string", "dir": "in", "portId": "name" },
+                { "name": "Value", "type": "string", "dir": "in", "portId": "value" }
+            ],
+            "template": "    {type} {name} = {value};"
+        },
+        "cmd_assign": {
+            "name": "Assign",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [
+                { "name": "Name", "type": "string", "dir": "in", "portId": "name" },
+                { "name": "Value", "type": "string", "dir": "in", "portId": "value" }
+            ],
+            "template": "    {name} = {value};"
+        },
+        "cmd_if": {
+            "name": "If",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "fields": [ { "name": "Condition", "type": "boolean", "dir": "in", "portId": "condition" } ],
+            "template": "    if ({condition}) {"
+        },
+        "cmd_if_end": {
+            "name": "End If",
+            "nodeType": "function",
+            "visual": { "color": "#f59e0b" },
+            "control": { "in": "exec_in", "out": "exec_out" },
+            "template": "    }"
+        }
     }
 }

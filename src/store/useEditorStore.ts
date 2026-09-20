@@ -1,13 +1,8 @@
 import { create } from 'zustand';
 import { NodeInstance, Connection, Position, NodeDefinition } from '../types';
-import commandsConfig from '../config/commands.json';
-import dataTypesConfig from '../config/data_types.json';
+import { RawTemplate, DataTypeDef, compileNodeDefinitions, compileDataTypes } from '../utils/TemplateSchema';
 
-interface DataType {
-    name: string;
-    color: string;
-    options?: (string | { value: string; label: string })[];
-}
+type DataType = DataTypeDef;
 
 // Магнитная сетка
 interface MagneticGridConfig {
@@ -47,6 +42,7 @@ interface EditorStore {
     pan: Position;
     nodeDefinitions: NodeDefinition[];
     dataTypes: DataType[];
+    activeTemplate: RawTemplate | null;  // текущий загруженный шаблон (drake/c/asm/пользовательский) — палитра + правила экспорта
 
     selectedNodeIds: string[];
     // Click-based connection: first port selected, showing temporary line to mouse
@@ -108,6 +104,7 @@ interface EditorStore {
     spawnNodeAndConnect: (definitionId: string, type: 'command' | 'data', position: Position, portId: string, portType: 'input' | 'output') => void;
 
     setData: (data: { nodes: NodeInstance[], connections: Connection[] }) => void;
+    loadTemplate: (template: RawTemplate) => void;  // переключает палитру нод + типы данных на другой язык/шаблон
     setHoveredType: (type: string | null) => void;
     setHoveredNodeId: (id: string | null) => void;
     setHoveredSidebarType: (type: string | null) => void;
@@ -170,8 +167,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     connections: [],
     scale: 1,
     pan: { x: 0, y: 0 },
-    nodeDefinitions: commandsConfig as NodeDefinition[],
-    dataTypes: dataTypesConfig.types,
+    nodeDefinitions: [],  // заполняется loadTemplate() при старте приложения (см. App.tsx)
+    dataTypes: [],
+    activeTemplate: null,
     selectedNodeIds: [],
     selectedPort: null,
     hoveredType: null,
@@ -910,6 +908,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             past: [...state.past, snapshot].slice(-state.historyLimit),
             future: []
         };
+    }),
+
+    // Переключает активный шаблон/язык: палитра нод (сайдбар CMD) и типы данных
+    // (сайдбар DATA) пересобираются из template.commands/template.dataTypes.
+    // Текущий граф на канвасе не трогаем — ноды с definitionId, которых нет в
+    // новой палитре, просто перестанут находить своё определение (ожидаемо
+    // при смене языка).
+    loadTemplate: (template) => set({
+        nodeDefinitions: compileNodeDefinitions(template),
+        dataTypes: compileDataTypes(template),
+        activeTemplate: template,
     }),
 
     // Undo/Redo actions

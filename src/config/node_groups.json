@@ -57,7 +57,7 @@
                     "tags": ["opt_reg_val", "opt_lte"]
                 },
                 {
-                    "commandId": "cmd_IfRegValGrt",
+                    "commandId": "cmd_IfRegValGtr",
                     "label": "Reg > Val",
                     "tags": ["opt_reg_val", "opt_gt"]
                 },
@@ -87,7 +87,7 @@
                     "tags": ["opt_reg_reg", "opt_lte"]
                 },
                 {
-                    "commandId": "cmd_IfRegRegGrt",
+                    "commandId": "cmd_IfRegRegGtr",
                     "label": "Reg > Reg",
                     "tags": ["opt_reg_reg", "opt_gt"]
                 },

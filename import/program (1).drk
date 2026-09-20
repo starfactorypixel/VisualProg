@@ -1,0 +1,12 @@
+
+0x00 0x00 : # ScriptInit(0, 0, 0, 0, 0)
+            0x01 0x00 0x00 0x00 0x00 0x00
+
+0x00 0x06 : # TriggerParseReg({res}, {op1:dec}, {op2:dec})
+            0x02 {res} {op1} {op2}
+
+0x00 0x0A : # IfRegValEqu({op1:dec}, {op2:dec}, {exec_false:address:hex2})
+            0x10 {op1} {op2:hex4} {exec_false:address:hex2}
+
+0x00 0x12 : # SetRegVal({res}, {op1:dec})
+            0x30 {res} {op1:hex4}
