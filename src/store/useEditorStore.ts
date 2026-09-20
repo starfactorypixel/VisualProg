@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NodeInstance, Connection, Position, NodeDefinition } from '../types';
-import { RawTemplate, DataTypeDef, compileNodeDefinitions, compileDataTypes } from '../utils/TemplateSchema';
+import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compileDataTypes, compileNodeGroups } from '../utils/TemplateSchema';
 
 type DataType = DataTypeDef;
 
@@ -42,6 +42,7 @@ interface EditorStore {
     pan: Position;
     nodeDefinitions: NodeDefinition[];
     dataTypes: DataType[];
+    nodeGroups: NodeGroupDef[];           // группы для вкладки GRP, компилируются из activeTemplate.nodeGroups
     activeTemplate: RawTemplate | null;  // текущий загруженный шаблон (drake/c/asm/пользовательский) — палитра + правила экспорта
 
     selectedNodeIds: string[];
@@ -70,6 +71,9 @@ interface EditorStore {
         isMagnetic: boolean;        // Примагничена ли нода
         magneticPosition: Position | null;
         nodeType?: 'command' | 'data';
+        dataPortCount?: number;     // Кол-во data-портов переносимой command-ноды — учитывается при расчёте линии ряда
+        previewGridRows?: GridRow[]; // Сетка без переносимой ноды (её исходный ряд уже пересчитан так, будто она ушла)
+        magneticTargetRowIds?: string[]; // Ноды, уже стоящие в целевом ряду — их тоже нужно подтянуть на линию при drop
         snapshot?: EditorStateSnapshot;  // Снимок состояния до перемещения
     } | null;
 
@@ -120,7 +124,7 @@ interface EditorStore {
     updateDragging: (position: Position) => void;
     endDragging: (commit: boolean, finalPositions?: Array<{ id: string; position: Position }>) => void;  // commit: true = применить, false = отменить
     recalculateGrid: () => void;
-    findNearestGridPoint: (position: Position, nodeType: 'command' | 'data') => { point: Position; distance: number; col: number; row: number } | null;
+    findNearestGridPoint: (position: Position, nodeType: 'command' | 'data') => { point: Position; distance: number; col: number; row: number; rowCommandNodeIds: string[] } | null;
 
     // Copy/Paste/Duplicate
     copySelectedNodes: () => void;
@@ -169,6 +173,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     pan: { x: 0, y: 0 },
     nodeDefinitions: [],  // заполняется loadTemplate() при старте приложения (см. App.tsx)
     dataTypes: [],
+    nodeGroups: [],
     activeTemplate: null,
     selectedNodeIds: [],
     selectedPort: null,
@@ -272,10 +277,33 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             originalPositions.set(nodeId, { ...position });
         }
 
+        // Сколько data-портов у переносимой команды — чтобы точка примагничивания
+        // сразу резервировала под неё место, а не только под уже стоящие в ряду ноды
+        const dataPortCount = nodeType === 'command'
+            ? getDataPortCount(nodeId, state.nodes, state.connections, state.nodeDefinitions, state.dataTypes)
+            : 0;
+
+        // Гипотетическая сетка «как если бы нода уже покинула свой исходный ряд».
+        // Без этого исходный ряд (который мог быть растянут именно из-за этой ноды)
+        // на превью остаётся старого размера, а после реального пересчёта на drop
+        // сжимается и сдвигает все нижележащие ряды — нода в итоге примагничивается
+        // не туда, где реально осядет.
+        const previewGridRows = nodeType === 'command'
+            ? recalculateGridRows(
+                state.nodes.filter(n => n.id !== nodeId),
+                state.connections,
+                state.magneticGridConfig,
+                state.nodeDefinitions,
+                state.dataTypes
+              )
+            : state.gridRows;
+
         return {
             draggingState: {
                 nodeId,
                 nodeType,
+                dataPortCount,
+                previewGridRows,
                 originalPosition: { ...node.position },
                 originalPositions,
                 isMagnetic: false,
@@ -457,7 +485,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     findNearestGridPoint: (position, nodeType) => {
         const state = get();
-        return findNearestGridPoint(position, nodeType, state.gridRows, state.magneticGridConfig);
+        const draggedPortCount = nodeType === 'command' ? (state.draggingState?.dataPortCount ?? 0) : 0;
+        // Пока идёт command-драг — ищем точку по сетке, где исходный ряд уже "освобождён"
+        const rows = nodeType === 'command' && state.draggingState?.previewGridRows
+            ? state.draggingState.previewGridRows
+            : state.gridRows;
+        return findNearestGridPoint(position, nodeType, rows, state.magneticGridConfig, draggedPortCount);
     },
 
     updateNodePosition: (id, position) => set((state) => ({
@@ -918,6 +951,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     loadTemplate: (template) => set({
         nodeDefinitions: compileNodeDefinitions(template),
         dataTypes: compileDataTypes(template),
+        nodeGroups: compileNodeGroups(template),
         activeTemplate: template,
     }),
 
@@ -1070,8 +1104,25 @@ function recalculateAndSnap(
     const newRows = recalculateGridRows(nodes, connections, config, nodeDefinitions, dataTypes);
     const snappedNodes = snapMagneticNodes(nodes, oldRows, newRows, config);
     // Пересчитываем строки ещё раз с обновлёнными позициями нод (на случай если command node сдвинулась в другую группу)
-    const finalRows = recalculateGridRows(snappedNodes, connections, config, nodeDefinitions, dataTypes);
-    return { gridRows: finalRows, nodes: snappedNodes };
+    const midRows = recalculateGridRows(snappedNodes, connections, config, nodeDefinitions, dataTypes);
+
+    // Гарантия: у каждой command-ноды и так уже точно известно, в каком ряду она
+    // состоит (commandNodeIds), поэтому дожимаем её ровно на линию этого ряда —
+    // без этого нода, для которой snapMagneticNodes не нашёл совпадения со старым
+    // рядом (например, только что перекинутая в пересчитанный/сдвинувшийся ряд),
+    // так и осталась бы "подвешенной" между линиями.
+    const rowByNodeId = new Map<string, GridRow>();
+    midRows.forEach(row => row.commandNodeIds.forEach(id => rowByNodeId.set(id, row)));
+    const alignedNodes = snappedNodes.map(node => {
+        if (node.type !== 'command') return node;
+        const row = rowByNodeId.get(node.id);
+        if (!row) return node;
+        const intersectionY = row.y + (row.rowHeight - row.maxCommandHeight);
+        return node.position.y === intersectionY ? node : { ...node, position: { ...node.position, y: intersectionY } };
+    });
+
+    const finalRows = recalculateGridRows(alignedNodes, connections, config, nodeDefinitions, dataTypes);
+    return { gridRows: finalRows, nodes: alignedNodes };
 }
 
 function recalculateGridRows(
@@ -1213,11 +1264,13 @@ function findNearestGridPoint(
     position: Position,
     nodeType: 'command' | 'data',
     gridRows: GridRow[],
-    config: MagneticGridConfig
-): { point: Position; distance: number; col: number; row: number } | null {
+    config: MagneticGridConfig,
+    draggedPortCount: number = 0
+): { point: Position; distance: number; col: number; row: number; rowCommandNodeIds: string[] } | null {
     if (gridRows.length === 0) return null;
 
-    let nearest: { point: Position; distance: number; col: number; row: number } | null = null;
+    let nearest: { point: Position; distance: number; col: number; row: number; rowCommandNodeIds: string[] } | null = null;
+    const dataUnitHeight = config.dataNodeHeight + config.dataNodeGap;
 
     if (nodeType === 'command') {
         // Для команд: привязка к пересечениям вертикальных и горизонтальных линий
@@ -1227,10 +1280,15 @@ function findNearestGridPoint(
         const columns = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => i * config.commandColumnSpacing);
 
         gridRows.forEach((row, rowIndex) => {
+            // Ряд должен резервировать место под data-порты и уже стоящих там нод,
+            // и переносимой — иначе после commit/recalculateGrid() линия уедет ниже
+            // той точки, к которой нода примагнитилась во время перетаскивания.
+            const effectiveMaxDataPorts = Math.max(row.maxDataPorts, draggedPortCount);
+            const intersectionY = row.y + effectiveMaxDataPorts * dataUnitHeight;
+
             columns.forEach((colX, colIndex) => {
                 // Точка пересечения
                 const intersectionX = colX;
-                const intersectionY = row.y + (row.rowHeight - row.maxCommandHeight);
 
                 // Вычисляем расстояние от центра верха node до точки пересечения
                 // Центр верха node = position.x + 75, position.y (если node width = 150)
@@ -1250,7 +1308,11 @@ function findNearestGridPoint(
                         point: { x: nodeX, y: nodeY },
                         distance,
                         col: colIndex,
-                        row: rowIndex
+                        row: rowIndex,
+                        // Ноды, уже стоящие в этом ряду (без переносимой — gridRows тут это уже
+                        // previewGridRows). На drop их нужно подтянуть на ту же линию, иначе
+                        // кластеризация по 50px допуску их не объединит с переносимой нодой.
+                        rowCommandNodeIds: row.commandNodeIds
                     };
                 }
             });
@@ -1282,7 +1344,8 @@ function findNearestGridPoint(
                             point: { x: nodeX, y: nodeY },
                             distance,
                             col: colIndex,
-                            row: rowIndex
+                            row: rowIndex,
+                            rowCommandNodeIds: []
                         };
                     }
                 });

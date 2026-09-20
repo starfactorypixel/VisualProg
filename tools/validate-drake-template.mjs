@@ -3,8 +3,9 @@
 // Проверяет файлы шаблонов (templates/*.json) в едином формате — команда
 // описывает СРАЗУ и то, как нода выглядит в редакторе (name/visual/control/
 // fields[].portId), и как она компилируется в код (opcode+length, либо
-// легаси template-строка). Никакого отдельного commands.json/data_types.json
-// больше нет — единственный источник истины на файл.
+// легаси template-строка). Никакого отдельного commands.json/data_types.json/
+// node_groups.json больше нет — единственный источник истины на файл, включая
+// группы вкладки GRP (template.nodeGroups).
 //
 // Запуск: node tools/validate-drake-template.mjs   (код возврата 1 при ошибках)
 
@@ -20,8 +21,6 @@ const TEMPLATE_FILES = [
     'templates/c_template.json',
     'templates/asm_template.json',
 ];
-
-const nodeGroups = readJson('src/config/node_groups.json');
 
 let totalErrors = 0;
 let totalWarnings = 0;
@@ -81,12 +80,10 @@ for (const rel of TEMPLATE_FILES) {
         }
     }
 
-    // node_groups.json ссылается на команды только DrakeScript-шаблона (это его wizard)
-    if (rel === 'templates/drake_template.json') {
-        for (const g of nodeGroups.groups || []) {
-            for (const n of g.nodes || []) {
-                if (!(n.commandId in commands)) err(`node_groups.json: группа "${g.id}" ссылается на несуществующий commandId "${n.commandId}"`);
-            }
+    // nodeGroups (вкладка GRP) — свои для каждого шаблона, ссылаются на commandId из этого же файла
+    for (const g of template.nodeGroups || []) {
+        for (const n of g.nodes || []) {
+            if (!(n.commandId in commands)) err(`nodeGroups: группа "${g.id}" ссылается на несуществующий commandId "${n.commandId}"`);
         }
     }
 

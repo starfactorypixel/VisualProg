@@ -203,7 +203,10 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         draggingState: {
                             ...store.draggingState,
                             isMagnetic: snapping,
-                            magneticPosition: snapping ? nearest!.point : null
+                            magneticPosition: snapping ? nearest!.point : null,
+                            // Ноды, уже стоящие в целевом ряду — на drop их нужно подтянуть
+                            // на ту же линию, иначе кластеризация рядов их не объединит
+                            magneticTargetRowIds: snapping ? nearest!.rowCommandNodeIds : []
                         }
                     });
                 }
@@ -240,17 +243,28 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                 if (el) el.style.transform = '';
             });
 
+            const isMagneticCommit = store.magneticGridMode && nodeIds.length === 1
+                && store.draggingState?.isMagnetic && store.draggingState.magneticPosition;
+            const magneticTargetRowIds = store.draggingState?.magneticTargetRowIds ?? [];
+
             // Коммитим финальные позиции одним setState
             useEditorStore.setState((state) => ({
                 draggingState: null,
                 nodes: state.nodes.map(n => {
-                    if (!nodeIds.includes(n.id)) return n;
-                    // Для магнитного snap одиночной ноды берём magneticPosition если есть
-                    if (store.magneticGridMode && nodeIds.length === 1
-                        && store.draggingState?.isMagnetic && store.draggingState.magneticPosition) {
-                        return { ...n, position: store.draggingState.magneticPosition! };
+                    if (nodeIds.includes(n.id)) {
+                        // Для магнитного snap одиночной ноды берём magneticPosition если есть
+                        if (isMagneticCommit) {
+                            return { ...n, position: store.draggingState!.magneticPosition! };
+                        }
+                        return { ...n, position: { x: n.position.x + odx, y: n.position.y + ody } };
                     }
-                    return { ...n, position: { x: n.position.x + odx, y: n.position.y + ody } };
+                    // Уже стоящие в целевом ряду ноды подтягиваем на ту же линию —
+                    // иначе группировка рядов (допуск 50px) не объединит их с переносимой
+                    // нодой, и после пересчёта нода снова окажется в отдельном ряду
+                    if (isMagneticCommit && magneticTargetRowIds.includes(n.id)) {
+                        return { ...n, position: { ...n.position, y: store.draggingState!.magneticPosition!.y } };
+                    }
+                    return n;
                 })
             }));
 

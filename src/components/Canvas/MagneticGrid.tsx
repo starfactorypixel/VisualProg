@@ -24,6 +24,16 @@ export const MagneticGrid: React.FC = () => {
     const draggingType = draggingState?.nodeType;
     const showCommandMagnets = draggingType === 'command';
     const showDataMagnets = draggingType === 'data';
+    // Сколько data-портов у переносимой command-ноды — используется, чтобы точка
+    // и линия ряда сразу показывали место, которое реально резервируется под неё
+    const draggingPortCount = showCommandMagnets ? (draggingState?.dataPortCount ?? 0) : 0;
+    const dataUnitHeight = magneticGridConfig.dataNodeHeight + magneticGridConfig.dataNodeGap;
+    // Пока тащим command-ноду — рисуем сетку так, будто она уже покинула свой исходный
+    // ряд (иначе исходный ряд визуально остаётся старого, "растянутого из-за неё" размера,
+    // хотя после drop он схлопнется и всё ниже сдвинется)
+    const displayRows = (showCommandMagnets && draggingState?.previewGridRows)
+        ? draggingState.previewGridRows
+        : gridRows;
 
     for (let i = startCol; i <= endCol; i++) {
         commandColumns.push(i * commandColumnSpacing);
@@ -73,14 +83,22 @@ export const MagneticGrid: React.FC = () => {
                 ))}
 
                 {/* Горизонтальные линии команд (адаптивные) */}
-                {gridRows.map((row) => (
-				  <g key={`row-group-${row.index}`}>
+                {displayRows.map((row) => {
+					// Если тащим command-ноду — ряд должен резервировать место под её
+					// data-порты тоже, даже если сейчас в ряду их меньше (или совсем нет)
+					const effectiveMaxDataPorts = Math.max(row.maxDataPorts, draggingPortCount);
+					const extraPorts = effectiveMaxDataPorts - row.maxDataPorts;
+					const intersectionY = row.y + effectiveMaxDataPorts * dataUnitHeight;
+					const previewRowHeight = row.rowHeight + extraPorts * dataUnitHeight;
+
+					return (
+					<g key={`row-group-${row.index}`}>
 					{/* Фон ячейки (аналог div с display: block) */}
 					<rect
 					  x={startX}
 					  y={row.y}
 					  width={endX - startX}
-					  height={row.rowHeight}
+					  height={previewRowHeight}
 					  fill="rgba(156, 163, 175, 0.03)" // Очень бледный фон для визуализации ячейки
 					  stroke="rgba(156, 163, 175, 0.2)"
 					  strokeWidth={1}
@@ -89,22 +107,22 @@ export const MagneticGrid: React.FC = () => {
 							{/* Основная горизонтальная линия */}
 							<line
 								x1={startX}
-								y1={row.y + (row.rowHeight - row.maxCommandHeight)}
+								y1={intersectionY}
 								x2={endX}
-								y2={row.y + (row.rowHeight - row.maxCommandHeight)}
+								y2={intersectionY}
 								stroke="rgba(156, 163, 175, 0.3)"
 								strokeWidth={2}
 							/>
-							
+
 							{/* Метка высоты ряда */}
 							<text
 								x={startX + 10}
-								y={row.y - 5  + (row.rowHeight - row.maxCommandHeight)}
+								y={intersectionY - 5}
 								fill="rgba(156, 163, 175, 0.5)"
 								fontSize="10"
 								fontFamily="monospace"
 							>
-								Row {row.index} (ports: {row.maxDataPorts})
+								Row {row.index} (ports: {row.maxDataPorts}{extraPorts > 0 ? ` → ${effectiveMaxDataPorts}` : ''})
 							</text>
 
 							{/* Точки пересечения для команд */}
@@ -114,38 +132,38 @@ export const MagneticGrid: React.FC = () => {
 									{showCommandMagnets && draggingState && !draggingState.isMagnetic && (
 										<circle
 											cx={x}
-											cy={row.y + (row.rowHeight - row.maxCommandHeight)}
+											cy={intersectionY}
 											r={magnetRadius}
 											fill="url(#magnet-glow)"
 											opacity={0.9}
 										/>
 									)}
-									
+
 									{/* Точка привязки */}
 									<circle
 										cx={x}
-										cy={row.y + (row.rowHeight - row.maxCommandHeight)}
+										cy={intersectionY}
 										r={4}
 										fill="rgba(59, 130, 246, 0.6)"
 										stroke="white"
 										strokeWidth={1}
 									/>
-									
+
 									{/* Крестик для наглядности */}
 									<line
 										x1={x - 6}
-										y1={row.y + (row.rowHeight - row.maxCommandHeight)}
+										y1={intersectionY}
 										x2={x + 6}
-										y2={row.y + (row.rowHeight - row.maxCommandHeight)}
+										y2={intersectionY}
 										stroke="white"
 										strokeWidth={1}
 										opacity={0.5}
 									/>
 									<line
 										x1={x}
-										y1={row.y - 6 + (row.rowHeight - row.maxCommandHeight)}
+										y1={intersectionY - 6}
 										x2={x}
-										y2={row.y + 6 + (row.rowHeight - row.maxCommandHeight)}
+										y2={intersectionY + 6}
 										stroke="white"
 										strokeWidth={1}
 										opacity={0.5}
@@ -154,11 +172,12 @@ export const MagneticGrid: React.FC = () => {
 							))}
 
 							{/* Горизонтальные линии данных (под каждой линией команд) */}
-							{Array.from({ length: row.maxDataPorts }).map((_, dataRowIdx) => {
-								const dataUnitHeight = magneticGridConfig.dataNodeHeight + magneticGridConfig.dataNodeGap;
-								const dataY = row.y + (row.rowHeight - row.maxCommandHeight) - (dataRowIdx + 1) * dataUnitHeight;
-								//const dataY = row.y + dataRowIdx * (magneticGridConfig.dataNodeHeight + magneticGridConfig.dataNodeGap);
-								
+							{Array.from({ length: effectiveMaxDataPorts }).map((_, dataRowIdx) => {
+								const dataY = intersectionY - (dataRowIdx + 1) * dataUnitHeight;
+								// Слоты сверх row.maxDataPorts существуют только потому, что их требует
+								// переносимая нода — подсвечиваем их отдельно как «превью»
+								const isPreviewSlot = dataRowIdx >= row.maxDataPorts;
+
 								return (
 									<g key={`data-row-${row.index}-${dataRowIdx}`}>
 										<line
@@ -166,11 +185,11 @@ export const MagneticGrid: React.FC = () => {
 											y1={dataY}
 											x2={endX}
 											y2={dataY}
-											stroke="rgba(34, 197, 94, 0.2)"
+											stroke={isPreviewSlot ? "rgba(59, 130, 246, 0.35)" : "rgba(34, 197, 94, 0.2)"}
 											strokeWidth={1}
 											strokeDasharray="3,3"
 										/>
-										
+
 										{/* Точки пересечения для данных */}
 										{dataColumns.map((x, colIdx) => (
 											<g key={`intersection-data-${row.index}-${dataRowIdx}-${colIdx}`}>
@@ -183,14 +202,15 @@ export const MagneticGrid: React.FC = () => {
 														opacity={0.9}
 													/>
 												)}
-												
+
 												<circle
 													cx={x}
 													cy={dataY}
 													r={3}
-													fill="rgba(34, 197, 94, 0.5)"
+													fill={isPreviewSlot ? "rgba(59, 130, 246, 0.6)" : "rgba(34, 197, 94, 0.5)"}
 													stroke="white"
 													strokeWidth={0.5}
+													strokeDasharray={isPreviewSlot ? "2,1" : undefined}
 												/>
 											</g>
 										))}
@@ -199,7 +219,8 @@ export const MagneticGrid: React.FC = () => {
 							})}
 						</g>
 					  </g>
-                ))}
+					);
+                })}
 
                 {/* Индикатор магнитного состояния */}
                 {draggingState && draggingState.isMagnetic && draggingState.magneticPosition && (

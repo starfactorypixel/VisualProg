@@ -35,6 +35,35 @@ export interface DataTypeDef {
     options?: (string | { value: string; label: string })[];
 }
 
+// Группировка команд для вкладки GRP сайдбара — пошаговый мастер выбора ноды
+// по параметрам (напр. "тип сравнения" + "тип операндов" -> конкретная cmd_*).
+export interface NodeGroupStepOption {
+    id: string;
+    label: string;
+    description?: string;
+}
+
+export interface NodeGroupStep {
+    id: string;
+    question: string;
+    options: NodeGroupStepOption[];
+}
+
+export interface NodeGroupEntry {
+    commandId: string;
+    label: string;
+    tags: string[];
+}
+
+export interface NodeGroupDef {
+    id: string;
+    label: string;
+    description?: string;
+    color: string;
+    steps: NodeGroupStep[];
+    nodes: NodeGroupEntry[];
+}
+
 export interface RawTemplate {
     id: string;
     name: string;
@@ -47,6 +76,7 @@ export interface RawTemplate {
     typeMap?: Record<string, string>;     // байт-режим: тип поля -> UI PortType (напр. "reg" -> "register")
     dataTypes?: DataTypeDef[];
     structures?: { name: string; fields: { name: string; type: string }[] }[];
+    nodeGroups?: NodeGroupDef[];           // группы для вкладки GRP (пошаговый мастер выбора ноды), см. NodeGroupsPanel
     commands: Record<string, TemplateCommand>;
 }
 
@@ -154,4 +184,8 @@ export function compileNodeDefinitions(template: RawTemplate): NodeDefinition[] 
 
 export function compileDataTypes(template: RawTemplate): DataTypeDef[] {
     return template.dataTypes || [];
+}
+
+export function compileNodeGroups(template: RawTemplate): NodeGroupDef[] {
+    return template.nodeGroups || [];
 }

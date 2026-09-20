@@ -1,41 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
+import { NodeGroupDef, NodeGroupEntry } from '../../utils/TemplateSchema';
 import clsx from 'clsx';
-import nodeGroupsConfig from '../../config/node_groups.json';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface StepOption {
-    id: string;
-    label: string;
-    description?: string;
-}
-
-interface Step {
-    id: string;
-    question: string;
-    options: StepOption[];
-}
-
-interface NodeEntry {
-    commandId: string;
-    label: string;
-    tags: string[];
-}
-
-interface NodeGroup {
-    id: string;
-    label: string;
-    description?: string;
-    color: string;
-    steps: Step[];
-    nodes: NodeEntry[];
-}
+type NodeGroup = NodeGroupDef;
+type NodeEntry = NodeGroupEntry;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const NodeGroupsPanel: React.FC = () => {
-    const { nodeDefinitions } = useEditorStore();
+    const { nodeDefinitions, nodeGroups } = useEditorStore();
 
     // Which group is expanded in accordion
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -43,7 +19,7 @@ export const NodeGroupsPanel: React.FC = () => {
     // Per-group: map of stepId -> selected optionId
     const [selections, setSelections] = useState<Record<string, Record<string, string>>>({});
 
-    const groups: NodeGroup[] = nodeGroupsConfig.groups as NodeGroup[];
+    const groups: NodeGroup[] = nodeGroups;
 
     const handleGroupToggle = (groupId: string) => {
         setExpandedGroup(prev => prev === groupId ? null : groupId);
@@ -109,6 +85,14 @@ export const NodeGroupsPanel: React.FC = () => {
         e.dataTransfer.setData('application/reactflow/id', commandId);
         e.dataTransfer.effectAllowed = 'move';
     };
+
+    if (groups.length === 0) {
+        return (
+            <div className="text-center py-8 text-neutral-600 text-xs italic px-3">
+                У этого шаблона нет групп команд
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col">
