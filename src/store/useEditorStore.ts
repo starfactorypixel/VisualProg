@@ -5,7 +5,7 @@ import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compile
 type DataType = DataTypeDef;
 
 // Магнитная сетка
-interface MagneticGridConfig {
+export interface MagneticGridConfig {
     commandColumnSpacing: number;  // Расстояние между вертикальными линиями команд (ширина 2 нод + зазор)
     dataColumnOffset: number;      // Смещение вертикали данных влево от команд
     verticalGap: number;           // Зазор между рядами
@@ -15,7 +15,7 @@ interface MagneticGridConfig {
 }
 
 // Информация о горизонтальной линии
-interface GridRow {
+export interface GridRow {
     index: number;              // Номер ряда
     y: number;                  // Y-координата линии
     rowHeight: number; // <--- Новое поле
@@ -1232,6 +1232,37 @@ function recalculateGridRows(
     }
 
     return gridRows;
+}
+
+/**
+ * Раскладывает произвольные ноды (напр. только что импортированные дизассемблером)
+ * по реальным линиям магнитной сетки — тем же rowY/columnX, что использует ручное
+ * перетаскивание (findNearestGridPoint), учитывая фактическую высоту ряда (кол-во
+ * data-портов у команд в нём). Row-группировка нод сохраняется (кластеризация по Y
+ * с допуском 50px в recalculateGridRows), меняются только точные координаты.
+ */
+export function snapNodesToMagneticGrid(
+    nodes: NodeInstance[],
+    connections: Connection[],
+    config: MagneticGridConfig,
+    nodeDefinitions: NodeDefinition[],
+    dataTypes: DataType[]
+): NodeInstance[] {
+    const rows = recalculateGridRows(nodes, connections, config, nodeDefinitions, dataTypes);
+    const rowByNodeId = new Map<string, GridRow>();
+    rows.forEach(row => row.commandNodeIds.forEach(id => rowByNodeId.set(id, row)));
+
+    return nodes.map(node => {
+        if (node.type !== 'command') return node;
+        const row = rowByNodeId.get(node.id);
+        if (!row) return node;
+
+        const y = row.y + (row.rowHeight - row.maxCommandHeight);
+        const nearestCol = Math.round((node.position.x + 75) / config.commandColumnSpacing);
+        const x = nearestCol * config.commandColumnSpacing - 75;
+
+        return { ...node, position: { x, y } };
+    });
 }
 
 /**

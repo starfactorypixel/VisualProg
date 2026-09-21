@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
 import menuConfig from '../../config/menu.json';
-import { useEditorStore } from '../../store/useEditorStore';
+import { useEditorStore, snapNodesToMagneticGrid } from '../../store/useEditorStore';
 import { CodeGenerator } from '../../utils/CodeGenerator';
+import { Disassembler, canDisassemble } from '../../utils/Disassembler';
 
 export const TopMenu: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
     const { nodes, connections, setData, loadTemplate, magneticGridMode, toggleMagneticGrid: _toggleMagneticGrid, undo, redo, canUndo, canRedo } = useEditorStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [uploadType, setUploadType] = useState<'project' | 'template'>('project');
+    const [uploadType, setUploadType] = useState<'project' | 'template' | 'import'>('project');
 
     const handleExport = async () => {
         const template = useEditorStore.getState().activeTemplate;
@@ -60,6 +61,19 @@ export const TopMenu: React.FC = () => {
         else if (action === 'file:export') {
             handleExport();
         }
+        else if (action === 'file:import_program') {
+            const template = useEditorStore.getState().activeTemplate;
+            if (!template) {
+                alert('Сначала загрузите шаблон языка: File → Load Template...');
+                return;
+            }
+            if (!canDisassemble(template)) {
+                alert('Импорт (дизассемблирование) поддерживается только для шаблонов в байт-режиме (opcode). Для этого шаблона нужен отдельный дизассемблер.');
+                return;
+            }
+            setUploadType('import');
+            setTimeout(() => fileInputRef.current?.click(), 0);
+        }
         else if (action === 'view:toggle_magnetic_grid') {
             const store = useEditorStore.getState();
             if ((store as any).toggleMagneticGrid) {
@@ -77,6 +91,7 @@ export const TopMenu: React.FC = () => {
                         ...(item.children || []),
                         { label: '---', action: 'none' },
                         { label: 'Load Template...', action: 'file:load_template' },
+                        { label: 'Import Program... (disassemble)', action: 'file:import_program' },
                         { label: 'Export', action: 'file:export' }
                     ]
                 };
@@ -103,6 +118,22 @@ export const TopMenu: React.FC = () => {
         reader.onload = async (ev) => {
             try {
                 const content = ev.target?.result as string;
+
+                if (uploadType === 'import') {
+                    const template = useEditorStore.getState().activeTemplate;
+                    if (!template) {
+                        alert('Сначала загрузите шаблон языка: File → Load Template...');
+                        return;
+                    }
+                    const result = new Disassembler(template).disassemble(content);
+                    const state = useEditorStore.getState();
+                    const gridNodes = snapNodesToMagneticGrid(result.nodes, result.connections, state.magneticGridConfig, state.nodeDefinitions, state.dataTypes);
+                    setData({ nodes: gridNodes, connections: result.connections });
+                    const summary = `Импортировано: ${result.nodes.length} нод, ${result.connections.length} связей.`;
+                    alert(result.warnings.length ? `${summary}\n\nПредупреждения:\n${result.warnings.join('\n')}` : summary);
+                    return;
+                }
+
                 const data = JSON.parse(content);
 
                 if (uploadType === 'project') {
@@ -134,7 +165,7 @@ export const TopMenu: React.FC = () => {
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept=".json"
+                accept={uploadType === 'import' ? `.${useEditorStore.getState().activeTemplate?.extension || 'txt'},.txt` : '.json'}
                 onChange={handleFileLoad}
             />
             
