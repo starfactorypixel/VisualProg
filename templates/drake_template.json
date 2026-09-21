@@ -242,7 +242,9 @@
                         { "id": "opt_mul", "label": "× (умножение)" },
                         { "id": "opt_div", "label": "÷ (деление)" },
                         { "id": "opt_inc", "label": "++ (инкремент)" },
-                        { "id": "opt_dec", "label": "-- (декремент)" }
+                        { "id": "opt_dec", "label": "-- (декремент)" },
+                        { "id": "opt_neg", "label": "*(-1) (смена знака)" },
+                        { "id": "opt_mod", "label": "% (остаток от деления)" }
                     ]
                 },
                 {
@@ -304,6 +306,21 @@
                     "commandId": "cmd_DecReg",
                     "label": "Reg --",
                     "tags": ["opt_dec"]
+                },
+                {
+                    "commandId": "cmd_NegReg",
+                    "label": "Reg *(-1)",
+                    "tags": ["opt_neg"]
+                },
+                {
+                    "commandId": "cmd_ModRegReg",
+                    "label": "Reg % Reg",
+                    "tags": ["opt_reg_reg_m", "opt_mod"]
+                },
+                {
+                    "commandId": "cmd_ModRegVal",
+                    "label": "Reg % Val",
+                    "tags": ["opt_reg_val_m", "opt_mod"]
                 }
             ]
         },
@@ -321,7 +338,8 @@
                         { "id": "opt_lshift", "label": "<< (сдвиг влево)" },
                         { "id": "opt_rshift", "label": ">> (сдвиг вправо)" },
                         { "id": "opt_and", "label": "&& (лог И)" },
-                        { "id": "opt_or", "label": "|| (лог ИЛИ)" }
+                        { "id": "opt_or", "label": "|| (лог ИЛИ)" },
+                        { "id": "opt_xor", "label": "^ (лог XOR)" }
                     ]
                 },
                 {
@@ -368,6 +386,164 @@
                     "commandId": "cmd_OrRegReg",
                     "label": "Reg || Reg",
                     "tags": ["opt_reg_reg_l", "opt_or"]
+                },
+                {
+                    "commandId": "cmd_XorRegVal",
+                    "label": "Reg ^ Val",
+                    "tags": ["opt_reg_val_l", "opt_xor"]
+                },
+                {
+                    "commandId": "cmd_XorRegReg",
+                    "label": "Reg ^ Reg",
+                    "tags": ["opt_reg_reg_l", "opt_xor"]
+                }
+            ]
+        },
+        {
+            "id": "grp_flow",
+            "label": "Flow / Event",
+            "description": "Точки входа, вызовы функций, переходы и завершение выполнения",
+            "color": "#10b981",
+            "steps": [
+                {
+                    "id": "step_flow_action",
+                    "question": "Выберите действие:",
+                    "options": [
+                        { "id": "opt_script_start", "label": "Start скрипта" },
+                        { "id": "opt_func_start", "label": "Begin функции" },
+                        { "id": "opt_call_function", "label": "Вызов функции" },
+                        { "id": "opt_goto", "label": "Переход (Goto)" },
+                        { "id": "opt_end", "label": "Конец функции (End)" },
+                        { "id": "opt_exit", "label": "Выход из скрипта (Exit)" }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_ScriptInit",
+                    "label": "Start",
+                    "tags": ["opt_script_start"]
+                },
+                {
+                    "commandId": "cmd_FunctionStart",
+                    "label": "Begin",
+                    "tags": ["opt_func_start"]
+                },
+                {
+                    "commandId": "cmd_function",
+                    "label": "Function",
+                    "tags": ["opt_call_function"]
+                },
+                {
+                    "commandId": "cmd_Goto",
+                    "label": "Goto",
+                    "tags": ["opt_goto"]
+                },
+                {
+                    "commandId": "cmd_End",
+                    "label": "End",
+                    "tags": ["opt_end"]
+                },
+                {
+                    "commandId": "cmd_Exit",
+                    "label": "Exit",
+                    "tags": ["opt_exit"]
+                }
+            ]
+        },
+        {
+            "id": "grp_assign",
+            "label": "Assign / Parse",
+            "description": "Запись значений в регистры и разбор входных данных",
+            "color": "#0ea5e9",
+            "steps": [
+                {
+                    "id": "step_assign_source",
+                    "question": "Откуда берётся значение:",
+                    "options": [
+                        { "id": "opt_from_val", "label": "Из константы" },
+                        { "id": "opt_from_reg", "label": "Из другого регистра" },
+                        { "id": "opt_from_parse", "label": "Из разбора входных данных" }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_SetRegVal",
+                    "label": "Set to Reg",
+                    "tags": ["opt_from_val"]
+                },
+                {
+                    "commandId": "cmd_SetRegReg",
+                    "label": "Copy Registers",
+                    "tags": ["opt_from_reg"]
+                },
+                {
+                    "commandId": "cmd_TriggerParseReg",
+                    "label": "Parsing",
+                    "tags": ["opt_from_parse"]
+                }
+            ]
+        },
+        {
+            "id": "grp_script_args",
+            "label": "Script Args",
+            "description": "Передача параметров при вызове скрипта",
+            "color": "#d946ef",
+            "steps": [
+                {
+                    "id": "step_arg_type",
+                    "question": "Тип передаваемых данных:",
+                    "options": [
+                        { "id": "opt_arg_val", "label": "Значения (4 байта)" },
+                        { "id": "opt_arg_reg8", "label": "Регистры 8-бит (4 шт.)" },
+                        { "id": "opt_arg_reg32", "label": "Регистр 32-бит" }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_SetScriptArgVal",
+                    "label": "SetScriptArgVal",
+                    "tags": ["opt_arg_val"]
+                },
+                {
+                    "commandId": "cmd_SetScriptArgReg8",
+                    "label": "SetScriptArgReg8",
+                    "tags": ["opt_arg_reg8"]
+                },
+                {
+                    "commandId": "cmd_SetScriptArgReg32",
+                    "label": "SetScriptArgReg32",
+                    "tags": ["opt_arg_reg32"]
+                }
+            ]
+        },
+        {
+            "id": "grp_can",
+            "label": "CAN Bus",
+            "description": "Отправка сообщений по CAN шине",
+            "color": "#06b6d4",
+            "steps": [
+                {
+                    "id": "step_can_payload",
+                    "question": "Тип полезной нагрузки:",
+                    "options": [
+                        { "id": "opt_can_raw", "label": "Сырые байты" },
+                        { "id": "opt_can_reg", "label": "Регистры + тип" }
+                    ]
+                }
+            ],
+            "nodes": [
+                {
+                    "commandId": "cmd_CanSendRaw11",
+                    "label": "CanSendRaw11",
+                    "tags": ["opt_can_raw"]
+                },
+                {
+                    "commandId": "cmd_CanSendRegVal11",
+                    "label": "CanSendRegVal11",
+                    "tags": ["opt_can_reg"]
                 }
             ]
         }
@@ -1235,7 +1411,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1289,7 +1465,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1343,7 +1519,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1397,7 +1573,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1424,7 +1600,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1451,7 +1627,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1478,7 +1654,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"
@@ -1613,7 +1789,7 @@
                     "portId": "inR"
                 },
                 {
-                    "name": "Count",
+                    "name": "Value",
                     "type": "int32",
                     "dir": "in",
                     "portId": "inC"

@@ -555,6 +555,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                     const renderPortRow = (port: any, type: 'input' | 'output') => {
                         const showValueInput = type === 'input' && !isInputConnected(port.id);
                         const connectorGap = 22; // отступ инпута от границы ноды, px
+                        const portDataType = dataTypes.find(d => d.name.toLowerCase() === getBaseType(port.type));
+                        const options = portDataType?.options;
 
                         return (
                             <div key={port.id} className={clsx("flex items-center gap-2 h-4 relative", type === 'output' && "justify-end")}>
@@ -571,17 +573,38 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                                 backgroundColor: getPortColor(port.type)
                                             }}
                                         />
-                                        <input
-                                            type="text"
-                                            className="absolute w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-1 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 z-10"
-                                            style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
-                                            placeholder="…"
-                                            value={data.data?.[port.id] ?? ''}
-                                            onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            onClick={(e) => e.stopPropagation()}
-                                            title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
-                                        />
+                                        {options ? (
+                                            <select
+                                                className="absolute w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-0.5 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 z-10 appearance-none cursor-pointer"
+                                                style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
+                                                value={data.data?.[port.id] ?? ''}
+                                                onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onClick={(e) => e.stopPropagation()}
+                                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                                            >
+                                                <option value="" disabled>…</option>
+                                                {options.map((opt: any, idx: number) => {
+                                                    const optValue = typeof opt === 'string' ? opt : opt.value;
+                                                    const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value);
+                                                    return (
+                                                        <option key={optValue || idx} value={optValue}>{optLabel}</option>
+                                                    );
+                                                })}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                className="absolute w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-1 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 z-10"
+                                                style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
+                                                placeholder="…"
+                                                value={data.data?.[port.id] ?? ''}
+                                                onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onClick={(e) => e.stopPropagation()}
+                                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                                            />
+                                        )}
                                     </>
                                 )}
                                 {type === 'output' && <span className="text-neutral-400 truncate">{port.name}</span>}
