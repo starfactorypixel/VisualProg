@@ -153,6 +153,9 @@ export class Disassembler {
                 } else if (field.role === 'address' && field.of) {
                     branchTargets[field.of] = raw;
                 } else if (field.portId) {
+                    // Инлайн-значение прямо на ноде — работает и для input, и для output
+                    // портов (Node.tsx рендерит один и тот же редактор для незанятых
+                    // портов в обе стороны), провод к отдельной data-ноде не нужен.
                     data[field.portId] = formatFieldValue(raw, field, this.template, size);
                 }
                 cursor += size;

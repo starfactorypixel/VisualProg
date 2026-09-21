@@ -512,8 +512,13 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                     // Порт без подключённого провода — можно ввести локальное значение
                     // прямо на ноде; CodeGenerator сам подставит его через node.data[portId],
                     // если связи с дата-нодой нет (см. processNode/{param} в CodeGenerator.ts).
+                    // Работает симметрично для входов и выходов (напр. "в какой регистр
+                    // записать результат" — dir:"out" — тоже можно ввести инлайн, а не
+                    // только проводом к отдельной data-ноде).
                     const isInputConnected = (portId: string) =>
                         connections.some(c => c.toNodeId === data.id && c.toPortId === portId);
+                    const isOutputConnected = (portId: string) =>
+                        connections.some(c => c.fromNodeId === data.id && c.fromPortId === portId);
 
                     const inputs = definition.inputs || [];
                     const outputs = definition.outputs || [];
@@ -535,7 +540,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                             <div
                                 className={clsx(
                                     "w-3 h-3 rounded-full border-neutral-900 transition-all cursor-crosshair shrink-0",
-                                    port.type.startsWith('ref:') ? "border-2" : "border",
+                                    port.type.startsWith('ref:') ? "border-[3px]" : "border",
                                     isSelected && "animate-pulse ring-2 ring-yellow-400 bg-yellow-400",
                                     !isSelected && isCompatible && "animate-pulse ring-2 ring-green-400 bg-green-400",
                                     !isSelected && !isCompatible && !isHovered && "hover:bg-white",
@@ -553,58 +558,116 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                     };
 
                     const renderPortRow = (port: any, type: 'input' | 'output') => {
-                        const showValueInput = type === 'input' && !isInputConnected(port.id);
-                        const connectorGap = 22; // отступ инпута от границы ноды, px
+                        const isConnected = type === 'input' ? isInputConnected(port.id) : isOutputConnected(port.id);
+                        const showValueInput = !isConnected;
+                        const connectorGap = 22; // отступ инпута от границы ноды (и от точки порта), px
                         const portDataType = dataTypes.find(d => d.name.toLowerCase() === getBaseType(port.type));
                         const options = portDataType?.options;
+                        const isInout = port.type.startsWith('ref:');
+
+                        const valueControl = options ? (
+                            <select
+                                className="w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-0.5 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
+                                value={data.data?.[port.id] ?? ''}
+                                onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                            >
+                                <option value="" disabled>…</option>
+                                {options.map((opt: any, idx: number) => {
+                                    const optValue = typeof opt === 'string' ? opt : opt.value;
+                                    const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value);
+                                    return (
+                                        <option key={optValue || idx} value={optValue}>{optLabel}</option>
+                                    );
+                                })}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                className="w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-1 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500"
+                                placeholder="…"
+                                value={data.data?.[port.id] ?? ''}
+                                onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                            />
+                        );
+
+                        if (isInout) {
+                            // Точку центрируем не через justify-center, а двумя flex-1
+                            // спейсерами по бокам — тогда левый спейсер получает РЕАЛЬНУЮ
+                            // вычисленную flex-раскладкой ширину (сколько бы места ни было
+                            // до центра) и можно сделать его видимой линией: она физически
+                            // тянется вплотную до точки, а не на фиксированные 22px, которые
+                            // до центра ноды не дотягивались. Плюс фиксированный отрезок
+                            // (как у обычных портов) от края строки до самого поля — без
+                            // него линия обрывалась на краю ноды, не доходя до поля снаружи.
+                            return (
+                                <div key={port.id} className="flex items-center h-4 relative w-full">
+                                    {showValueInput && (
+                                        <>
+                                            {/* top/bottom+auto-margin вместо top:50%+transform — тот же приём,
+                                                которым flexbox центрирует flex-1 линию/точку ниже, без
+                                                отдельного (под)пиксельного округления transform, из-за
+                                                которого два отрезка линии слегка расходились по вертикали. */}
+                                            <div
+                                                className="absolute h-px pointer-events-none"
+                                                style={{
+                                                    right: '100%',
+                                                    width: connectorGap,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    margin: 'auto 0',
+                                                    backgroundColor: getPortColor(port.type)
+                                                }}
+                                            />
+                                            <div
+                                                className="absolute z-10"
+                                                style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
+                                            >
+                                                {valueControl}
+                                            </div>
+                                        </>
+                                    )}
+                                    <div
+                                        className="flex-1 h-px"
+                                        style={{ backgroundColor: showValueInput ? getPortColor(port.type) : 'transparent' }}
+                                    />
+                                    {renderPortDot(port, type)}
+                                    <span className="text-neutral-400 truncate ml-2">{port.name}</span>
+                                    <div className="flex-1" />
+                                </div>
+                            );
+                        }
+
+                        // Input-порты — на левом крае ноды, инпут-значение уезжает влево от
+                        // неё (right: ...); output-порты — на правом крае, зеркалим на left.
+                        const sideProp: 'left' | 'right' = type === 'input' ? 'right' : 'left';
 
                         return (
-                            <div key={port.id} className={clsx("flex items-center gap-2 h-4 relative", type === 'output' && "justify-end")}>
+                            <div key={port.id} className={clsx("flex items-center gap-2 h-4 relative w-full", type === 'output' && "justify-end")}>
                                 {showValueInput && (
                                     <>
                                         {/* Линия-коннектор к точке порта */}
                                         <div
                                             className="absolute h-px pointer-events-none"
                                             style={{
-                                                right: '100%',
+                                                [sideProp]: '100%',
                                                 width: connectorGap,
                                                 top: '50%',
                                                 transform: 'translateY(-50%)',
                                                 backgroundColor: getPortColor(port.type)
                                             }}
                                         />
-                                        {options ? (
-                                            <select
-                                                className="absolute w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-0.5 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 z-10 appearance-none cursor-pointer"
-                                                style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
-                                                value={data.data?.[port.id] ?? ''}
-                                                onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                                onClick={(e) => e.stopPropagation()}
-                                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
-                                            >
-                                                <option value="" disabled>…</option>
-                                                {options.map((opt: any, idx: number) => {
-                                                    const optValue = typeof opt === 'string' ? opt : opt.value;
-                                                    const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value);
-                                                    return (
-                                                        <option key={optValue || idx} value={optValue}>{optLabel}</option>
-                                                    );
-                                                })}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                className="absolute w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-1 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 z-10"
-                                                style={{ right: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
-                                                placeholder="…"
-                                                value={data.data?.[port.id] ?? ''}
-                                                onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                                onClick={(e) => e.stopPropagation()}
-                                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
-                                            />
-                                        )}
+                                        <div
+                                            className="absolute z-10"
+                                            style={{ [sideProp]: `calc(100% + ${connectorGap}px)`, top: '50%', transform: 'translateY(-50%)' }}
+                                        >
+                                            {valueControl}
+                                        </div>
                                     </>
                                 )}
                                 {type === 'output' && <span className="text-neutral-400 truncate">{port.name}</span>}
