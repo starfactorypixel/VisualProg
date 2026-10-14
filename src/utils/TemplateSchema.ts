@@ -111,7 +111,7 @@ export function compileEmission(template: RawTemplate): { nodes: Record<string, 
             if (cmd.length === undefined) continue; // чисто editor-only, в кодогене не участвует
             // Маркер без байт (напр. cmd_End) — адрес нужен, но эмитить нечего.
             weights[commandId] = cmd.length;
-            nodes[commandId] = `\n{self:hex2} : # ${commandId.replace('cmd_', '')}()\n            `;
+            nodes[commandId] = `\n# {self:hex2} : ${commandId.replace('cmd_', '')}()\n            `;
             continue;
         }
 
@@ -137,7 +137,7 @@ export function compileEmission(template: RawTemplate): { nodes: Record<string, 
             byteParts.push(`{${f.portId}${mod}}`);
         }
 
-        nodes[commandId] = `\n{self:hex2} : # ${commandId.replace('cmd_', '')}(${commentParts.join(', ')})\n            ${byteParts.join(' ')}`;
+        nodes[commandId] = `\n# {self:hex2} : ${commandId.replace('cmd_', '')}(${commentParts.join(', ')})\n            ${byteParts.join(' ')}`;
     }
 
     return { nodes, weights };
