@@ -86,7 +86,7 @@ function hexBytes(value: number, size: number): string {
     const bytes: string[] = [];
     const v = (value ?? 0) >>> 0;
     for (let k = 0; k < size; k++) {
-        bytes.unshift('0x' + ((v >> (k * 8)) & 0xFF).toString(16).toUpperCase().padStart(2, '0'));
+        bytes.push('0x' + ((v >> (k * 8)) & 0xFF).toString(16).toUpperCase().padStart(2, '0'));
     }
     return bytes.join(' ');
 }

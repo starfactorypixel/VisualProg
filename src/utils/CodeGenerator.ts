@@ -312,7 +312,7 @@ export class CodeGenerator {
                 const bytes: string[] = [];
                 for (let i = 0; i < hexBytes; i++) {
                     const byte = (num >> (i * 8)) & 0xFF;
-                    bytes.unshift('0x' + byte.toString(16).toUpperCase().padStart(2, '0'));
+                    bytes.push('0x' + byte.toString(16).toUpperCase().padStart(2, '0'));
                 }
                 return bytes.join(' ');
             };

@@ -52,7 +52,7 @@ function extractByteStream(source: string): number[] {
 
 function readUint(bytes: number[], offset: number, size: number): number {
     let v = 0;
-    for (let i = 0; i < size; i++) v = v * 256 + (bytes[offset + i] ?? 0);
+    for (let i = size - 1; i >= 0; i--) v = v * 256 + (bytes[offset + i] ?? 0);
     return v >>> 0;
 }
 
