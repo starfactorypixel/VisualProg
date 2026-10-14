@@ -652,6 +652,51 @@
             "opcode": "0x02",
             "length": 4
         },
+        "cmd_StateReadReg": {
+            "name": "ReadDBVal",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Reg val",
+                    "type": "reg",
+                    "dir": "out",
+                    "portId": "inR"
+                },
+                {
+                    "name": "Reg time",
+                    "type": "reg",
+                    "dir": "out",
+                    "portId": "inC"
+                },
+                {
+                    "name": "CAN ID (num)",
+                    "type": "uint16",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Type (num)",
+                    "type": "enum",
+                    "dir": "in",
+                    "portId": "op3"
+                },
+                {
+                    "name": "Offset (num)",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op4"
+                }
+            ],
+            "opcode": "0xA5",
+            "length": 7
+        },
         "cmd_SetScriptArgVal": {
             "name": "SetScriptArgVal",
             "nodeType": "function",
@@ -1977,6 +2022,27 @@
                 "out": null
             },
             "length": 0
+        },
+        "cmd_Run": {
+            "name": "Run",
+            "nodeType": "function",
+            "visual": {
+                "color": "#10b981"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": null
+            },
+            "fields": [
+                {
+                    "name": "ID",
+                    "type": "uint16",
+                    "dir": "in",
+                    "portId": "op1"
+                }
+            ],
+            "opcode": "0x81",
+            "length": 3
         },
         "cmd_Exit": {
             "name": "Exit",
