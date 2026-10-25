@@ -1888,6 +1888,12 @@
                     "portId": "op1"
                 },
                 {
+                    "name": "Length",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op10"
+                },
+                {
                     "name": "Data 0",
                     "type": "uint8",
                     "dir": "in",
@@ -1955,6 +1961,12 @@
                     "type": "can_id",
                     "dir": "in",
                     "portId": "op1"
+                },
+                {
+                    "name": "Length",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op7"
                 },
                 {
                     "name": "Func ID",

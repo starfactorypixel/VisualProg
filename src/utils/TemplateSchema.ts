@@ -191,21 +191,26 @@ export function compileNodeGroups(template: RawTemplate): NodeGroupDef[] {
 }
 
 // Ищет в шаблоне команды-"мосты" по структуре, а не по имени (cmd_Goto и т.п.
-// не хардкодятся): control.in есть, control.out — один порт (не true/false),
-// и на этот порт заведено единственное поле role:"address" без других
-// данных-входов — т.е. команда умеет перейти в произвольный адрес сама, без
-// физического соседства с целью. Используется редактором, когда пользователь
-// пытается провести второй exec-провод в уже занятый вход — вместо проверки
-// при экспорте предлагается сразу вставить такую ноду-мост в граф.
-export function findAddressBridgeCommands(template: RawTemplate | null | undefined): { commandId: string; cmd: TemplateCommand }[] {
+// не хардкодятся): control.in есть, и хотя бы один из control-выходов (строка
+// control.out, либо true/false у условных команд) несёт на себе поле
+// role:"address" — т.е. этот конкретный выход умеет указать произвольный
+// адрес сам, без физического соседства с целью (как exec_false у If). Именно
+// этот порт и идёт в соединение с target; остальные выходы/данные команды
+// (true-ветка, Register/Value у If и т.п.) остаются на усмотрение пользователя,
+// как у любой вручную вставленной ноды. Используется редактором, когда
+// пользователь пытается провести второй exec-провод в уже занятый вход —
+// вместо проверки при экспорте сразу предлагается вставить такую ноду-мост.
+export function findAddressBridgeCommands(template: RawTemplate | null | undefined): { commandId: string; cmd: TemplateCommand; inPort: string; outPort: string }[] {
     if (!template?.commands) return [];
-    const result: { commandId: string; cmd: TemplateCommand }[] = [];
+    const result: { commandId: string; cmd: TemplateCommand; inPort: string; outPort: string }[] = [];
     for (const [commandId, cmd] of Object.entries(template.commands)) {
-        if (!cmd.control?.in || typeof cmd.control?.out !== 'string') continue;
-        const outPort = cmd.control.out;
-        const hasOwnAddress = cmd.fields?.some(f => f.role === 'address' && f.of === outPort);
-        const hasOtherDataField = cmd.fields?.some(f => f.role !== 'address' && (f.dir === 'in' || f.dir === 'out' || f.dir === 'inout'));
-        if (hasOwnAddress && !hasOtherDataField) result.push({ commandId, cmd });
+        const inPort = cmd.control?.in;
+        if (!inPort) continue;
+        const outPorts = typeof cmd.control?.out === 'string'
+            ? [cmd.control.out]
+            : cmd.control?.out ? [cmd.control.out.true, cmd.control.out.false] : [];
+        const addressPort = outPorts.find(outPort => cmd.fields?.some(f => f.role === 'address' && f.of === outPort));
+        if (addressPort) result.push({ commandId, cmd, inPort, outPort: addressPort });
     }
     return result;
 }

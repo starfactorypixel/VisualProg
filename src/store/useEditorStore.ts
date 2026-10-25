@@ -985,8 +985,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         if (!state.pendingBridge) return state;
         const { sourceNodeId, sourcePortId, targetNodeId, targetPortId, position } = state.pendingBridge;
 
-        const cmd = state.activeTemplate?.commands?.[definitionId];
-        if (!cmd || !cmd.control?.in || typeof cmd.control?.out !== 'string') {
+        // Берём именно тот выход, у которого реально есть role:"address" (у If
+        // это exec_false, а не control.out целиком — он объект {true,false}).
+        const candidate = findAddressBridgeCommands(state.activeTemplate).find(c => c.commandId === definitionId);
+        if (!candidate) {
             return { ...state, pendingBridge: null };
         }
 
@@ -1003,8 +1005,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
         const snapshot = createSnapshot(state);
         const newConnections: Connection[] = [
-            { id: crypto.randomUUID(), fromNodeId: sourceNodeId, fromPortId: sourcePortId, toNodeId: bridgeNode.id, toPortId: cmd.control.in },
-            { id: crypto.randomUUID(), fromNodeId: bridgeNode.id, fromPortId: cmd.control.out, toNodeId: targetNodeId, toPortId: targetPortId }
+            { id: crypto.randomUUID(), fromNodeId: sourceNodeId, fromPortId: sourcePortId, toNodeId: bridgeNode.id, toPortId: candidate.inPort },
+            { id: crypto.randomUUID(), fromNodeId: bridgeNode.id, fromPortId: candidate.outPort, toNodeId: targetNodeId, toPortId: targetPortId }
         ];
 
         return {
