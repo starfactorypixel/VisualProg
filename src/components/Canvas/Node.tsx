@@ -170,7 +170,13 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
         }
         // If clicking on a different port, try to complete the connection
         else {
-            store.completeLinking(data.id, portId, type);
+            const container = document.getElementById('canvas-container');
+            const rect = container?.getBoundingClientRect();
+            const screen = { x: e.clientX, y: e.clientY };
+            const world = rect
+                ? { x: (screen.x - rect.left - store.pan.x) / store.scale, y: (screen.y - rect.top - store.pan.y) / store.scale }
+                : screen;
+            store.completeLinking(data.id, portId, type, { world, screen });
         }
     };
 

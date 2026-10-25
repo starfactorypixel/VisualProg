@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NodeInstance, Connection, Position, NodeDefinition } from '../types';
-import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compileDataTypes, compileNodeGroups } from '../utils/TemplateSchema';
+import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compileDataTypes, compileNodeGroups, findAddressBridgeCommands } from '../utils/TemplateSchema';
 
 type DataType = DataTypeDef;
 
@@ -58,6 +58,18 @@ interface EditorStore {
     hoveredNodeId: string | null;
     hoveredSidebarType: string | null;
 
+    // Второй exec-провод в уже занятый вход, если у источника нет своего
+    // адресного выхода (см. completeLinking) — ждёт выбора ноды-моста (Goto
+    // и т.п.) из выпадающего списка вместо прямого соединения.
+    pendingBridge: {
+        sourceNodeId: string;
+        sourcePortId: string;
+        targetNodeId: string;
+        targetPortId: string;
+        position: Position;        // мировые координаты — куда поставить новую ноду
+        screenPosition: Position;  // экранные координаты — где показать список выбора
+    } | null;
+
     // Магнитная сетка
     magneticGridMode: boolean;
     magneticGridConfig: MagneticGridConfig;
@@ -104,8 +116,10 @@ interface EditorStore {
 
     startLinking: (fromNodeId: string, fromPortId: string, fromPortType: 'input' | 'output', fromPortTypeStr: string) => void;
     cancelLinking: () => void;
-    completeLinking: (targetNodeId: string, targetPortId: string, targetPortType: 'input' | 'output') => void;
+    completeLinking: (targetNodeId: string, targetPortId: string, targetPortType: 'input' | 'output', releasePos?: { world: Position; screen: Position }) => void;
     spawnNodeAndConnect: (definitionId: string, type: 'command' | 'data', position: Position, portId: string, portType: 'input' | 'output') => void;
+    resolveBridge: (definitionId: string) => void;
+    cancelBridge: () => void;
 
     setData: (data: { nodes: NodeInstance[], connections: Connection[] }) => void;
     loadTemplate: (template: RawTemplate) => void;  // переключает палитру нод + типы данных на другой язык/шаблон
@@ -177,6 +191,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     activeTemplate: null,
     selectedNodeIds: [],
     selectedPort: null,
+    pendingBridge: null,
     hoveredType: null,
     hoveredNodeId: null,
     hoveredSidebarType: null,
@@ -759,7 +774,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     }),
     cancelLinking: () => set({ selectedPort: null }),
 
-    completeLinking: (targetNodeId, targetPortId, _targetPortType) => set((state) => {
+    completeLinking: (targetNodeId, targetPortId, _targetPortType, releasePos) => set((state) => {
         if (!state.selectedPort) return state;
         const { fromNodeId, fromPortId, fromPortType } = state.selectedPort;
 
@@ -818,6 +833,39 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
         // Remove conflicting connections
         const isExec = getBaseType(sourcePort.type || '') === 'execution';
+
+        if (isExec) {
+            // Вход уже занят другим переходом — физически "провалиться" туда сможет
+            // только один из источников. Если у ЭТОГО источника нет своего
+            // адресного поля (role:"address" на этом выходе, как у If/Goto), прямое
+            // соединение даст код, который при экспорте работал бы неверно —
+            // вместо этого просим выбрать ноду-мост (Goto и т.п.).
+            const alreadyOccupied = state.connections.some(c => c.toNodeId === targetNode.id && c.toPortId === targetPortIdFinal);
+            if (alreadyOccupied) {
+                const sourceCmd = state.activeTemplate?.commands?.[sourceNode.definitionId];
+                const sourceHasOwnAddress = !!sourceCmd?.fields?.some(f => f.role === 'address' && f.of === sourcePortId);
+                if (!sourceHasOwnAddress) {
+                    const candidates = findAddressBridgeCommands(state.activeTemplate);
+                    if (candidates.length === 0) {
+                        alert(`Нельзя соединить: вход "${targetNode.definitionId}" уже занят другим переходом, а эта нода не умеет указывать адрес напрямую. В шаблоне нет команды безусловного перехода (Goto) для вставки моста.`);
+                        return { ...state, selectedPort: null };
+                    }
+                    return {
+                        ...state,
+                        selectedPort: null,
+                        pendingBridge: {
+                            sourceNodeId: sourceNode.id,
+                            sourcePortId,
+                            targetNodeId: targetNode.id,
+                            targetPortId: targetPortIdFinal,
+                            position: releasePos?.world ?? { x: targetNode.position.x, y: targetNode.position.y },
+                            screenPosition: releasePos?.screen ?? { x: 0, y: 0 },
+                        },
+                    };
+                }
+            }
+        }
+
         const connections = state.connections.filter(c => {
             if (!isExec && c.toNodeId === targetNode.id && c.toPortId === targetPortIdFinal) return false;
             if (isExec && c.fromNodeId === sourceNode.id && c.fromPortId === sourcePortId) return false;
@@ -930,6 +978,47 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             future: []
         };
     }),
+
+    // Пользователь выбрал ноду-мост (Goto и т.п.) из списка в BridgePicker —
+    // вставляем её вместо прямого соединения: source -> мост -> target.
+    resolveBridge: (definitionId) => set((state) => {
+        if (!state.pendingBridge) return state;
+        const { sourceNodeId, sourcePortId, targetNodeId, targetPortId, position } = state.pendingBridge;
+
+        const cmd = state.activeTemplate?.commands?.[definitionId];
+        if (!cmd || !cmd.control?.in || typeof cmd.control?.out !== 'string') {
+            return { ...state, pendingBridge: null };
+        }
+
+        const GRID_SIZE = 20;
+        const snappedPos = { x: Math.round(position.x / GRID_SIZE) * GRID_SIZE, y: Math.round(position.y / GRID_SIZE) * GRID_SIZE };
+
+        const bridgeNode: NodeInstance = {
+            id: crypto.randomUUID(),
+            definitionId,
+            type: 'command',
+            position: snappedPos,
+            data: {}
+        };
+
+        const snapshot = createSnapshot(state);
+        const newConnections: Connection[] = [
+            { id: crypto.randomUUID(), fromNodeId: sourceNodeId, fromPortId: sourcePortId, toNodeId: bridgeNode.id, toPortId: cmd.control.in },
+            { id: crypto.randomUUID(), fromNodeId: bridgeNode.id, fromPortId: cmd.control.out, toNodeId: targetNodeId, toPortId: targetPortId }
+        ];
+
+        return {
+            ...state,
+            nodes: [...state.nodes, bridgeNode],
+            connections: [...state.connections, ...newConnections],
+            selectedNodeIds: [bridgeNode.id],
+            pendingBridge: null,
+            past: [...state.past, snapshot].slice(-state.historyLimit),
+            future: []
+        };
+    }),
+
+    cancelBridge: () => set({ pendingBridge: null }),
 
     setData: (data) => set((state) => {
         // Сохраняем текущее состояние в историю перед заменой данных

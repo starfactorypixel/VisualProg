@@ -28,6 +28,7 @@ export class CodeGenerator {
     private nodeAddresses: Map<string, number> = new Map();
     private fileCache: Map<string, { nodes: NodeInstance[], connections: Connection[] }> = new Map();
     private loadingFiles: Set<string> = new Set();
+    private warnings: Set<string> = new Set();
 
     constructor(nodes: NodeInstance[], connections: Connection[], config: ExportConfig) {
         this.nodes = [...nodes];
@@ -337,10 +338,26 @@ export class CodeGenerator {
 
             if (node.data && node.data[param] !== undefined) return wrapHex(node.data[param]);
 
+            // Незаполненный обычный data-вход (не адрес перехода) — безопасно
+            // подставить 0, чтобы не ломать байт-поток при импорте (см. pureHexLine
+            // в Disassembler.ts). Для mode !== 'auto' (role: 'address' — цели
+            // переходов) так делать нельзя: несвязанный jump тихо получил бы
+            // адрес 0 (начало скрипта) вместо явно видимой ошибки.
+            if (mode === 'auto') {
+                // Один и тот же {param} встречается в шаблоне команды дважды
+                // (в комментарии и в байтах) — Set схлопывает повтор в одно сообщение.
+                this.warnings.add(`${node.definitionId} (${node.id}): поле "${param}" не заполнено и не подключено — подставлен 0`);
+                return wrapHex('0');
+            }
+
             return match;
         });
 
         return code;
+    }
+
+    public getWarnings(): string[] {
+        return Array.from(this.warnings);
     }
 
     private resolveValue(node: NodeInstance, mode: 'auto' | 'value' | 'label' | 'address' | 'delta' = 'auto', currentAddress: number = 0, portId?: string): string {

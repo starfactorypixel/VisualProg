@@ -189,3 +189,23 @@ export function compileDataTypes(template: RawTemplate): DataTypeDef[] {
 export function compileNodeGroups(template: RawTemplate): NodeGroupDef[] {
     return template.nodeGroups || [];
 }
+
+// Ищет в шаблоне команды-"мосты" по структуре, а не по имени (cmd_Goto и т.п.
+// не хардкодятся): control.in есть, control.out — один порт (не true/false),
+// и на этот порт заведено единственное поле role:"address" без других
+// данных-входов — т.е. команда умеет перейти в произвольный адрес сама, без
+// физического соседства с целью. Используется редактором, когда пользователь
+// пытается провести второй exec-провод в уже занятый вход — вместо проверки
+// при экспорте предлагается сразу вставить такую ноду-мост в граф.
+export function findAddressBridgeCommands(template: RawTemplate | null | undefined): { commandId: string; cmd: TemplateCommand }[] {
+    if (!template?.commands) return [];
+    const result: { commandId: string; cmd: TemplateCommand }[] = [];
+    for (const [commandId, cmd] of Object.entries(template.commands)) {
+        if (!cmd.control?.in || typeof cmd.control?.out !== 'string') continue;
+        const outPort = cmd.control.out;
+        const hasOwnAddress = cmd.fields?.some(f => f.role === 'address' && f.of === outPort);
+        const hasOtherDataField = cmd.fields?.some(f => f.role !== 'address' && (f.dir === 'in' || f.dir === 'out' || f.dir === 'inout'));
+        if (hasOwnAddress && !hasOtherDataField) result.push({ commandId, cmd });
+    }
+    return result;
+}

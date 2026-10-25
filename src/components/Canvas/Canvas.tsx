@@ -6,6 +6,7 @@ import { Node } from './Node';
 import { ConnectionLayer } from './ConnectionLayer';
 import { Position } from '../../types';
 import { ContextMenu } from '../UI/ContextMenu';
+import { BridgePicker } from '../UI/BridgePicker';
 
 export const Canvas: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -321,6 +322,8 @@ export const Canvas: React.FC = () => {
                     ]}
                 />
             )}
+
+            <BridgePicker />
         </>
     );
 };

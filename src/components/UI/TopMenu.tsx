@@ -19,6 +19,12 @@ export const TopMenu: React.FC = () => {
         const generator = new CodeGenerator(nodes, connections, template);
         const code = await generator.generate();
 
+        const warnings = generator.getWarnings();
+        if (warnings.length) {
+            const proceed = confirm(`Незаполненные поля будут экспортированы как 0:\n\n${warnings.join('\n')}\n\nПродолжить экспорт?`);
+            if (!proceed) return;
+        }
+
         const blob = new Blob([code], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
