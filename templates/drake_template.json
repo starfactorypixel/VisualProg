@@ -99,7 +99,7 @@
             "color": "#f87171",
             "options": [
                 {
-                    "value": "0xs00",
+                    "value": "0x00",
                     "label": "FALSE"
                 },
                 {
@@ -1943,7 +1943,7 @@
                 }
             ],
             "opcode": "0xA0",
-            "length": 11
+            "length": 12
         },
         "cmd_CanSendRegVal11": {
             "name": "CanSendRegVal11",
@@ -2000,7 +2000,7 @@
                 }
             ],
             "opcode": "0xA1",
-            "length": 8
+            "length": 9
         },
         "cmd_Goto": {
             "name": "Goto",
