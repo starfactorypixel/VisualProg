@@ -20,7 +20,7 @@
         "uint16": "number",
         "int32": "number",
         "reg": "register",
-        "enum": "number",
+        "enum": "var_type",
         "can_id": "number"
     },
     "dataTypes": [
@@ -31,6 +31,19 @@
         {
             "name": "number",
             "color": "#60a5fa"
+        },
+        {
+            "name": "var_type",
+            "color": "#a78bfa",
+            "options": [
+                { "value": "0x00", "label": "Byte" },
+                { "value": "0x01", "label": "Uint8" },
+                { "value": "0x02", "label": "Int8" },
+                { "value": "0x03", "label": "Uint16" },
+                { "value": "0x04", "label": "Int16" },
+                { "value": "0x05", "label": "Uint32" },
+                { "value": "0x06", "label": "Int32" }
+            ]
         },
         {
             "name": "register",
