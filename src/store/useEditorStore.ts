@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { NodeInstance, Connection, Position, NodeDefinition } from '../types';
 import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compileDataTypes, compileNodeGroups, findAddressBridgeCommands } from '../utils/TemplateSchema';
+import { genId } from '../utils/id';
 
 type DataType = DataTypeDef;
 
@@ -605,7 +606,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         // Create ID mapping for connections
         const idMap = new Map<string, string>();
         const newNodes = selectedNodes.map(node => {
-            const newId = crypto.randomUUID();
+            const newId = genId();
             idMap.set(node.id, newId);
             return {
                 ...node,
@@ -619,7 +620,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         });
 
         const newConnections = selectedConnections.map(conn => ({
-            id: crypto.randomUUID(),
+            id: genId(),
             fromNodeId: idMap.get(conn.fromNodeId)!,
             fromPortId: conn.fromPortId,
             toNodeId: idMap.get(conn.toNodeId)!,
@@ -667,7 +668,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         // Create ID mapping
         const idMap = new Map<string, string>();
         const newNodes = clipboardNodes.map(node => {
-            const newId = crypto.randomUUID();
+            const newId = genId();
             idMap.set(node.id, newId);
             return {
                 ...node,
@@ -681,7 +682,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         });
 
         const newConnections = clipboardConnections.map(conn => ({
-            id: crypto.randomUUID(),
+            id: genId(),
             fromNodeId: idMap.get(conn.fromNodeId)!,
             fromPortId: conn.fromPortId,
             toNodeId: idMap.get(conn.toNodeId)!,
@@ -873,7 +874,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         });
 
         const newConnection: Connection = {
-            id: Math.random().toString(36).substr(2, 9),
+            id: genId(),
             fromNodeId: sourceNode.id,
             fromPortId: sourcePortId,
             toNodeId: targetNode.id,
@@ -895,7 +896,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         const GRID_SIZE = 20;
         const snappedPos = { x: Math.round(position.x / GRID_SIZE) * GRID_SIZE, y: Math.round(position.y / GRID_SIZE) * GRID_SIZE };
 
-        const newNodeId = crypto.randomUUID();
+        const newNodeId = genId();
         const newNode: NodeInstance = {
             id: newNodeId,
             definitionId,
@@ -953,7 +954,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
                     if (sourcePortId && targetPortId) {
                         const newConnection: Connection = {
-                            id: Math.random().toString(36).substr(2, 9),
+                            id: genId(),
                             fromNodeId: sourceNode.id,
                             fromPortId: sourcePortId,
                             toNodeId: targetNode.id,
@@ -996,7 +997,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         const snappedPos = { x: Math.round(position.x / GRID_SIZE) * GRID_SIZE, y: Math.round(position.y / GRID_SIZE) * GRID_SIZE };
 
         const bridgeNode: NodeInstance = {
-            id: crypto.randomUUID(),
+            id: genId(),
             definitionId,
             type: 'command',
             position: snappedPos,
@@ -1005,8 +1006,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
         const snapshot = createSnapshot(state);
         const newConnections: Connection[] = [
-            { id: crypto.randomUUID(), fromNodeId: sourceNodeId, fromPortId: sourcePortId, toNodeId: bridgeNode.id, toPortId: candidate.inPort },
-            { id: crypto.randomUUID(), fromNodeId: bridgeNode.id, fromPortId: candidate.outPort, toNodeId: targetNodeId, toPortId: targetPortId }
+            { id: genId(), fromNodeId: sourceNodeId, fromPortId: sourcePortId, toNodeId: bridgeNode.id, toPortId: candidate.inPort },
+            { id: genId(), fromNodeId: bridgeNode.id, fromPortId: candidate.outPort, toNodeId: targetNodeId, toPortId: targetPortId }
         ];
 
         return {

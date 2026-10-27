@@ -1,5 +1,6 @@
 import React from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
+import { genId } from '../../utils/id';
 import clsx from 'clsx';
 
 export const VariablesBar: React.FC = () => {
@@ -106,7 +107,7 @@ export const VariablesBar: React.FC = () => {
                             const node = store.nodes.find(n => n.id === nodeId);
                             if (node && node.type === 'data') {
                                 store.addNode({
-                                    id: crypto.randomUUID(),
+                                    id: genId(),
                                     definitionId: node.definitionId,
                                     type: 'data',
                                     position: { x: node.position.x + 200, y: node.position.y },
@@ -124,7 +125,7 @@ export const VariablesBar: React.FC = () => {
                             const cy = rect ? (rect.height / 2 - pan.y) / scale : 100;
 
                             // 1. Create the base node
-                            const baseNodeId = crypto.randomUUID();
+                            const baseNodeId = genId();
                             store.addNode({
                                 id: baseNodeId,
                                 definitionId: sidebarTypeId,
@@ -135,7 +136,7 @@ export const VariablesBar: React.FC = () => {
 
                             // 2. Create the Selector node nearby
                             store.addNode({
-                                id: crypto.randomUUID(),
+                                id: genId(),
                                 definitionId: sidebarTypeId,
                                 type: 'data',
                                 position: { x: cx + 200, y: cy },

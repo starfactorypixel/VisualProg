@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { TopMenu } from './components/UI/TopMenu';
 import { VariablesBar } from './components/UI/VariablesBar';
 import { useEditorStore } from './store/useEditorStore';
+import { genId } from './utils/id';
 
 function App() {
     const { addNode, scale, pan, setData, loadTemplate, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
@@ -135,7 +136,7 @@ function App() {
 
             if (type === 'command') {
                 addNode({
-                    id: crypto.randomUUID(),
+                    id: genId(),
                     definitionId: id,
                     type: 'command',
                     position: { x: worldX - 75, y: worldY - 20 },
@@ -145,7 +146,7 @@ function App() {
             }
             else if (type === 'data') {
                 addNode({
-                    id: crypto.randomUUID(),
+                    id: genId(),
                     definitionId: id,
                     type: 'data',
                     position: { x: worldX - 75, y: worldY - 20 },
