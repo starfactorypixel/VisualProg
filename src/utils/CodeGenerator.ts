@@ -336,7 +336,11 @@ export class CodeGenerator {
                 if (target) return wrapHex(this.resolveValue(target, mode, currentAddress, connFrom.toPortId));
             }
 
-            if (node.data && node.data[param] !== undefined) return wrapHex(node.data[param]);
+            // Пустая строка (сброшенный выпадающий список/очищенное поле) —
+            // то же самое "не заполнено", что и undefined: иначе ушла бы в
+            // байты буквально пустая подстановка без единого байта вместо неё.
+            const inlineValue = node.data?.[param];
+            if (inlineValue !== undefined && inlineValue !== '') return wrapHex(inlineValue);
 
             // Незаполненный обычный data-вход (не адрес перехода) — безопасно
             // подставить 0, чтобы не ломать байт-поток при импорте (см. pureHexLine
@@ -376,7 +380,12 @@ export class CodeGenerator {
 
         if (node.type === 'data') {
             const label = node.data.label;
-            const value = node.data.value || '0';
+            const rawValue = node.data.value;
+            const value = rawValue || '0';
+
+            if (!rawValue && !label) {
+                this.warnings.add(`${node.definitionId} (${node.id}): переменная не заполнена — подставлен 0`);
+            }
 
             if (mode === 'label') return label || value;
             if (mode === 'value') return value;

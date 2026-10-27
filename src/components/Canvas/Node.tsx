@@ -424,7 +424,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         onChange={(e) => updateNodeData(data.id, { value: e.target.value })}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
-                                        <option value="" disabled>Pick from {groupName}...</option>
+                                        <option value="">— не выбрано — (Pick from {groupName}...)</option>
                                         {uniqueNodes.map(node => (
                                             <option key={node.value} value={node.value}>{node.displayText}</option>
                                         ))}
@@ -444,7 +444,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         onChange={(e) => updateNodeData(data.id, { value: e.target.value })}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
-                                        <option value="" disabled>Select...</option>
+                                        <option value="">— не выбрано —</option>
                                         {dataType.options.map((opt, idx) => {
                                             // Support both string format and object format
                                             const optValue = typeof opt === 'string' ? opt : opt.value;
@@ -580,7 +580,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 onClick={(e) => e.stopPropagation()}
                                 title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
                             >
-                                <option value="" disabled>…</option>
+                                <option value="">…</option>
                                 {options.map((opt: any, idx: number) => {
                                     const optValue = typeof opt === 'string' ? opt : opt.value;
                                     const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value);
