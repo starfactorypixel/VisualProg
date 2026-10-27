@@ -650,7 +650,7 @@
                     "portId": "res"
                 },
                 {
-                    "name": "Type (num)",
+                    "name": "Type",
                     "type": "enum",
                     "dir": "in",
                     "portId": "op1"
