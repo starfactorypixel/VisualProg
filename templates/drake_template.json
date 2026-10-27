@@ -612,7 +612,7 @@
             "name": "Begin",
             "nodeType": "event",
             "visual": {
-                "color": "#10b981",
+                "color": "#98b5c0",
                 "icon": "play"
             },
             "control": {
@@ -728,32 +728,20 @@
                     "portId": "op1"
                 },
                 {
-                    "name": "Data 0",
+                    "name": "Idx",
                     "type": "uint8",
                     "dir": "in",
                     "portId": "op2"
                 },
                 {
-                    "name": "Data 1",
+                    "name": "Value",
                     "type": "uint8",
                     "dir": "in",
                     "portId": "op3"
-                },
-                {
-                    "name": "Data 2",
-                    "type": "uint8",
-                    "dir": "in",
-                    "portId": "op4"
-                },
-                {
-                    "name": "Data 3",
-                    "type": "uint8",
-                    "dir": "in",
-                    "portId": "op5"
                 }
             ],
             "opcode": "0x03",
-            "length": 7
+            "length": 5
         },
         "cmd_SetScriptArgReg8": {
             "name": "SetScriptArgReg8",
@@ -773,32 +761,20 @@
                     "portId": "op1"
                 },
                 {
-                    "name": "Register 0",
-                    "type": "reg",
+                    "name": "Idx",
+                    "type": "uint8",
                     "dir": "in",
                     "portId": "op2"
                 },
                 {
-                    "name": "Register 1",
+                    "name": "Register",
                     "type": "reg",
                     "dir": "in",
                     "portId": "op3"
-                },
-                {
-                    "name": "Register 2",
-                    "type": "reg",
-                    "dir": "in",
-                    "portId": "op4"
-                },
-                {
-                    "name": "Register 3",
-                    "type": "reg",
-                    "dir": "in",
-                    "portId": "op5"
                 }
             ],
             "opcode": "0x04",
-            "length": 7
+            "length": 5
         },
         "cmd_SetScriptArgReg32": {
             "name": "SetScriptArgReg32",
@@ -818,7 +794,7 @@
                     "portId": "op1"
                 },
                 {
-                    "name": "Register 0",
+                    "name": "Register",
                     "type": "reg",
                     "dir": "in",
                     "portId": "op2"
@@ -2040,7 +2016,7 @@
             "name": "End",
             "nodeType": "function",
             "visual": {
-                "color": "#10b981"
+                "color": "#98b5c0"
             },
             "control": {
                 "in": "exec_in",

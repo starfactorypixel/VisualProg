@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import logo from '../../../img/logo.png';
 import menuConfig from '../../config/menu.json';
 import { useEditorStore, snapNodesToMagneticGrid } from '../../store/useEditorStore';
 import { CodeGenerator } from '../../utils/CodeGenerator';
@@ -175,6 +176,8 @@ export const TopMenu: React.FC = () => {
                 onChange={handleFileLoad}
             />
             
+            <img src={logo} alt="" className="h-5 w-5 ml-2 shrink-0" />
+
             <div className="flex items-center px-2">
                 {mergedMenu.items.map(item => (
                     <div
