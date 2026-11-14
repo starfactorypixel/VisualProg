@@ -45,15 +45,25 @@ export const TopMenu: React.FC = () => {
             }
         }
         else if (action === 'file:save') {
-            const data = {
-                nodes: useEditorStore.getState().nodes,
-                connections: useEditorStore.getState().connections
+            const state = useEditorStore.getState();
+            // currentFileSignature сохраняем обратно — иначе у открытого через
+            // ?file=... тела функции это "Save" стирало бы signature (а с ней —
+            // и пины на ноде вызова), если результат руками положить поверх
+            // исходного файла функции, ведь другого способа перезаписать его
+            // пока нет.
+            const data: Record<string, unknown> = {
+                nodes: state.nodes,
+                connections: state.connections,
             };
+            if (state.currentFileSignature) data.signature = state.currentFileSignature;
+
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'project.json';
+            // Подсказываем исходное имя файла, если это открытая функция — чтобы
+            // проще было положить скачанное обратно на то же место.
+            a.download = state.currentFilePath ? state.currentFilePath.split('/').pop()! : 'project.json';
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -145,7 +155,7 @@ export const TopMenu: React.FC = () => {
 
                 if (uploadType === 'project') {
                     if (data.nodes && data.connections) {
-                        setData(data);
+                        setData(data, data.signature, file.name);
                     } else {
                         alert('Invalid project file format');
                     }

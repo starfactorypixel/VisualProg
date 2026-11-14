@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { NodeInstance, Connection, Position, NodeDefinition } from '../types';
+import { FunctionSignature } from '../types/function';
 import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compileDataTypes, compileNodeGroups, findAddressBridgeCommands } from '../utils/TemplateSchema';
+import { resolveNodeDefinition } from '../utils/functionSignature';
 import { genId } from '../utils/id';
 
 type DataType = DataTypeDef;
@@ -45,6 +47,19 @@ interface EditorStore {
     dataTypes: DataType[];
     nodeGroups: NodeGroupDef[];           // группы для вкладки GRP, компилируются из activeTemplate.nodeGroups
     activeTemplate: RawTemplate | null;  // текущий загруженный шаблон (drake/c/asm/пользовательский) — палитра + правила экспорта
+
+    // Сигнатуры пинов функций (cmd_function), подгружаются лениво по имени
+    // файла — ключ "файл не загружался" отсутствует, null = "загружен, пинов нет".
+    functionSignatures: Record<string, FunctionSignature | null>;
+    loadFunctionSignature: (file: string) => Promise<void>;
+    setFunctionSignature: (file: string, signature: FunctionSignature | null) => void;
+
+    // Путь и сигнатура файла, открытого сейчас на холсте (через ?file=... —
+    // напр. тело функции). TopMenu.Save подставляет их обратно при скачивании,
+    // иначе "Save" стирал бы signature функции (а с ним — и её пины на вызове),
+    // если результат руками положить поверх исходного файла.
+    currentFilePath: string | null;
+    currentFileSignature: FunctionSignature | null;
 
     selectedNodeIds: string[];
     // Click-based connection: first port selected, showing temporary line to mouse
@@ -95,6 +110,12 @@ interface EditorStore {
     future: EditorStateSnapshot[];
     historyLimit: number;
 
+    // Снимок "до правки", сделанный на фокус поля (значение ноды/переименование/
+    // путь к файлу и т.п.) — коммитится в past на blur, если значение реально
+    // изменилось. Без этого updateNodeData (которая вызывается на каждый
+    // keystroke) никогда не попадала бы в историю отмены.
+    pendingFieldEdit: { nodeId: string; snapshot: EditorStateSnapshot } | null;
+
     // Clipboard for copy/paste
     clipboard: ClipboardData | null;
 
@@ -102,6 +123,8 @@ interface EditorStore {
     addNode: (node: NodeInstance) => void;
     updateNodePosition: (id: string, position: Position) => void;
     updateNodeData: (id: string, data: any) => void;
+    beginFieldEdit: (nodeId: string) => void;
+    commitFieldEdit: (nodeId: string) => void;
     removeNode: (id: string) => void;
     removeSelectedNodes: () => void;
 
@@ -122,7 +145,7 @@ interface EditorStore {
     resolveBridge: (definitionId: string) => void;
     cancelBridge: () => void;
 
-    setData: (data: { nodes: NodeInstance[], connections: Connection[] }) => void;
+    setData: (data: { nodes: NodeInstance[], connections: Connection[] }, signature?: FunctionSignature, filePath?: string) => void;
     loadTemplate: (template: RawTemplate) => void;  // переключает палитру нод + типы данных на другой язык/шаблон
     setHoveredType: (type: string | null) => void;
     setHoveredNodeId: (id: string | null) => void;
@@ -190,6 +213,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     dataTypes: [],
     nodeGroups: [],
     activeTemplate: null,
+    functionSignatures: {},
+    currentFilePath: null,
+    currentFileSignature: null,
     selectedNodeIds: [],
     selectedPort: null,
     pendingBridge: null,
@@ -204,6 +230,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     past: [],
     future: [],
+    pendingFieldEdit: null,
     historyLimit: HISTORY_LIMIT,
 
     clipboard: null,
@@ -517,7 +544,36 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         nodes: state.nodes.map((n) => n.id === id ? { ...n, data: { ...n.data, ...data } } : n)
     })),
 
+    // Вызывается на focus поля (значение, переименование, путь к файлу и т.п.) —
+    // запоминает состояние "до правки". Коммитится в past на commitFieldEdit (blur),
+    // и только если значение реально изменилось — иначе клик мимо поля не плодил бы
+    // пустые шаги отмены.
+    beginFieldEdit: (nodeId) => set((state) => {
+        if (state.pendingFieldEdit?.nodeId === nodeId) return state;
+        return { pendingFieldEdit: { nodeId, snapshot: createSnapshot(state) } };
+    }),
+
+    commitFieldEdit: (nodeId) => set((state) => {
+        const pending = state.pendingFieldEdit;
+        if (!pending || pending.nodeId !== nodeId) return { pendingFieldEdit: null };
+
+        const before = pending.snapshot.nodes.find(n => n.id === nodeId);
+        const after = state.nodes.find(n => n.id === nodeId);
+        const changed = JSON.stringify(before?.data) !== JSON.stringify(after?.data);
+
+        if (!changed) return { pendingFieldEdit: null };
+
+        return {
+            pendingFieldEdit: null,
+            past: [...state.past, pending.snapshot].slice(-state.historyLimit),
+            future: []
+        };
+    }),
+
     removeNode: (id) => set((state) => {
+        // Пины функции (data.isPin) нельзя удалить — см. removeSelectedNodes.
+        if (state.nodes.find(n => n.id === id)?.data?.isPin) return state;
+
         const snapshot = createSnapshot(state);
         const newNodes = state.nodes.filter((n) => n.id !== id);
         const newConnections = state.connections.filter((c) => c.fromNodeId !== id && c.toNodeId !== id);
@@ -545,17 +601,24 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     removeSelectedNodes: () => set((state) => {
         if (state.selectedNodeIds.length === 0) return state;
 
+        // Пины функции (data.isPin) нельзя удалить — это часть сигнатуры,
+        // заданной в конструкторе функции, не обычная дата-нода.
+        const idsToDelete = new Set(
+            state.selectedNodeIds.filter(id => !state.nodes.find(n => n.id === id)?.data?.isPin)
+        );
+        if (idsToDelete.size === 0) return state;
+
         const snapshot = createSnapshot(state);
-        const idsToDelete = new Set(state.selectedNodeIds);
         const newNodes = state.nodes.filter((n) => !idsToDelete.has(n.id));
         const newConnections = state.connections.filter((c) => !idsToDelete.has(c.fromNodeId) && !idsToDelete.has(c.toNodeId));
+        const remainingSelected = state.selectedNodeIds.filter(id => !idsToDelete.has(id));
 
         if (state.magneticGridMode) {
             const { gridRows, nodes: snapped } = recalculateAndSnap(newNodes, newConnections, state.magneticGridConfig, state.nodeDefinitions, state.dataTypes, state.gridRows);
             return {
                 nodes: snapped,
                 connections: newConnections,
-                selectedNodeIds: [],
+                selectedNodeIds: remainingSelected,
                 gridRows,
                 past: [...state.past, snapshot].slice(-state.historyLimit),
                 future: []
@@ -564,7 +627,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         return {
             nodes: newNodes,
             connections: newConnections,
-            selectedNodeIds: [],
+            selectedNodeIds: remainingSelected,
             gridRows: state.gridRows,
             past: [...state.past, snapshot].slice(-state.historyLimit),
             future: []
@@ -608,6 +671,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         const newNodes = selectedNodes.map(node => {
             const newId = genId();
             idMap.set(node.id, newId);
+            // Копия пина-параметра функции — не настоящий пин сигнатуры (у него
+            // уже есть один экземпляр с этим pinId), иначе дубликат окажется
+            // неудаляемым и будет путать CodeGenerator при поиске плейсхолдера.
+            const { isPin, pinId, pinDir, ...restData } = node.data || {};
             return {
                 ...node,
                 id: newId,
@@ -615,7 +682,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                     x: node.position.x + 30,
                     y: node.position.y + 30
                 },
-                data: { ...node.data }
+                data: restData
             };
         });
 
@@ -670,6 +737,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         const newNodes = clipboardNodes.map(node => {
             const newId = genId();
             idMap.set(node.id, newId);
+            // См. duplicateSelectedNodes — вставленная копия пина не должна
+            // оставаться неудаляемой и путать поиск плейсхолдера по pinId.
+            const { isPin, pinId, pinDir, ...restData } = node.data || {};
             return {
                 ...node,
                 id: newId,
@@ -677,7 +747,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                     x: node.position.x + offsetX,
                     y: node.position.y + offsetY
                 },
-                data: { ...node.data }
+                data: restData
             };
         });
 
@@ -782,28 +852,16 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         // Can't connect to same node
         if (fromNodeId === targetNodeId) return { ...state, selectedPort: null };
 
-        // Determine source and target based on port types
-        let sourceNodeId: string, sourcePortId: string, targetNodeIdFinal: string, targetPortIdFinal: string;
-
-        if (fromPortType === 'output') {
-            sourceNodeId = fromNodeId;
-            sourcePortId = fromPortId;
-            targetNodeIdFinal = targetNodeId;
-            targetPortIdFinal = targetPortId;
-        } else {
-            sourceNodeId = targetNodeId;
-            sourcePortId = targetPortId;
-            targetNodeIdFinal = fromNodeId;
-            targetPortIdFinal = fromPortId;
-        }
-
-        const sourceNode = state.nodes.find(n => n.id === sourceNodeId);
-        const targetNode = state.nodes.find(n => n.id === targetNodeIdFinal);
-
-        if (!sourceNode || !targetNode) return { ...state, selectedPort: null };
+        const fromNode = state.nodes.find(n => n.id === fromNodeId);
+        const toNode = state.nodes.find(n => n.id === targetNodeId);
+        if (!fromNode || !toNode) return { ...state, selectedPort: null };
 
         const getDef = (node: NodeInstance) => {
-            if (node.type === 'command') return state.nodeDefinitions.find(d => d.id === node.definitionId);
+            // resolveNodeDefinition, а не прямой find — иначе у cmd_function с
+            // сигнатурой пины есть только визуально (Node.tsx их рисует), а тут,
+            // в отдельной копии той же логики, порт пина не находится вообще,
+            // и completeLinking молча отменяет связь.
+            if (node.type === 'command') return resolveNodeDefinition(node, state.nodeDefinitions, state.functionSignatures);
             const dt = state.dataTypes.find(t => t.name === node.definitionId);
             if (!dt) return undefined;
             return {
@@ -813,17 +871,43 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             } as unknown as NodeDefinition;
         };
 
-        const sourceDef = getDef(sourceNode);
-        const targetDef = getDef(targetNode);
-        if (!sourceDef || !targetDef) return { ...state, selectedPort: null };
+        const fromDef = getDef(fromNode);
+        const toDef = getDef(toNode);
+        if (!fromDef || !toDef) return { ...state, selectedPort: null };
+
+        // fromPortType — лишь намёк от того, какую сторону кликнули первой, а не
+        // гарантия направления: у дата-ноды один и тот же порт числится и во
+        // inputs, и в outputs (кликнуть можно с любой стороны), и по умолчанию
+        // (когда ничего ещё не выбрано) она всегда трактуется как "output" —
+        // см. getPortType в Node.tsx/VariablesBar.tsx. Из-за этого выходной пин
+        // функции (он существует ТОЛЬКО в outputs) никогда не находился как
+        // targetPort, если дата-ноду кликали первой: обе стороны считались
+        // "output", и completeLinking молча отменял связь. Пробуем обе
+        // ориентации и берём ту, где оба порта реально существуют там, где
+        // им положено быть.
+        const resolveDirection = (
+            srcNode: NodeInstance, srcPortId: string, srcDef: NodeDefinition,
+            tgtNode: NodeInstance, tgtPortId: string, tgtDef: NodeDefinition
+        ) => {
+            const srcPort = (srcDef.outputs || []).find(p => p.id === srcPortId);
+            const tgtPort = (tgtDef.inputs || []).find(p => p.id === tgtPortId);
+            if (!srcPort || !tgtPort) return null;
+            return { sourceNode: srcNode, sourcePortId: srcPortId, sourcePort: srcPort, targetNode: tgtNode, targetPortIdFinal: tgtPortId, targetPort: tgtPort };
+        };
+
+        const resolved =
+            (fromPortType === 'output'
+                ? resolveDirection(fromNode, fromPortId, fromDef, toNode, targetPortId, toDef)
+                : resolveDirection(toNode, targetPortId, toDef, fromNode, fromPortId, fromDef))
+            ?? (fromPortType === 'output'
+                ? resolveDirection(toNode, targetPortId, toDef, fromNode, fromPortId, fromDef)
+                : resolveDirection(fromNode, fromPortId, fromDef, toNode, targetPortId, toDef));
+
+        if (!resolved) return { ...state, selectedPort: null };
+
+        const { sourceNode, sourcePortId, sourcePort, targetNode, targetPortIdFinal, targetPort } = resolved;
 
         const getBaseType = (t: string) => t.toLowerCase().startsWith('ref:') ? t.toLowerCase().slice(4) : t.toLowerCase();
-
-        // Validate type compatibility
-        const sourcePort = (sourceDef.outputs || []).find(p => p.id === sourcePortId);
-        const targetPort = (targetDef.inputs || []).find(p => p.id === targetPortIdFinal);
-
-        if (!sourcePort || !targetPort) return { ...state, selectedPort: null };
 
         const btSource = getBaseType(sourcePort.type || '');
         const btTarget = getBaseType(targetPort.type || '');
@@ -867,8 +951,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             }
         }
 
+        // Вход команды — это один слот под одно значение, поэтому новый провод
+        // туда законно вытесняет старый. Дата-нода (переменная) — не слот, а
+        // цель записи: несколько разных команд (например, в разных ветках if)
+        // вполне могут писать в одну и ту же переменную, и каждый такой провод
+        // должен сохраняться независимо, а не вытеснять предыдущий.
         const connections = state.connections.filter(c => {
-            if (!isExec && c.toNodeId === targetNode.id && c.toPortId === targetPortIdFinal) return false;
+            if (!isExec && targetNode.type === 'command' && c.toNodeId === targetNode.id && c.toPortId === targetPortIdFinal) return false;
             if (isExec && c.fromNodeId === sourceNode.id && c.fromPortId === sourcePortId) return false;
             return true;
         });
@@ -1023,13 +1112,38 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     cancelBridge: () => set({ pendingBridge: null }),
 
-    setData: (data) => set((state) => {
+    setData: (data, signature, filePath) => set((state) => {
         // Сохраняем текущее состояние в историю перед заменой данных
         const snapshot = createSnapshot(state);
+
+        // Если открываемый файл — функция с сигнатурой, гарантируем, что на
+        // холсте есть неудаляемая placeholder-нода под каждый пин (файлы,
+        // созданные конструктором функций, уже несут их в себе — здесь это
+        // no-op; это подстраховка для файлов, где сигнатуру добавили позже).
+        let nodes = data.nodes;
+        if (signature?.pins?.length) {
+            const existingPinIds = new Set(
+                nodes.filter(n => n.data?.isPin).map(n => n.data.pinId)
+            );
+            const missingPins = signature.pins.filter(p => !existingPinIds.has(p.id));
+            if (missingPins.length > 0) {
+                const injected: NodeInstance[] = missingPins.map((pin, i) => ({
+                    id: genId(),
+                    definitionId: pin.dataType,
+                    type: 'data',
+                    position: { x: 40, y: 40 + i * 110 },
+                    data: { isPin: true, pinId: pin.id, pinDir: pin.dir, label: pin.name, value: '' }
+                }));
+                nodes = [...nodes, ...injected];
+            }
+        }
+
         return {
-            nodes: data.nodes,
+            nodes,
             connections: data.connections,
-            gridRows: state.magneticGridMode ? recalculateGridRows(data.nodes, data.connections, state.magneticGridConfig, state.nodeDefinitions, state.dataTypes) : [],
+            currentFilePath: filePath ?? null,
+            currentFileSignature: signature ?? null,
+            gridRows: state.magneticGridMode ? recalculateGridRows(nodes, data.connections, state.magneticGridConfig, state.nodeDefinitions, state.dataTypes) : [],
             past: [...state.past, snapshot].slice(-state.historyLimit),
             future: []
         };
@@ -1046,6 +1160,39 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         nodeGroups: compileNodeGroups(template),
         activeTemplate: template,
     }),
+
+    // Лениво подгружает и кэширует сигнатуру пинов функции по пути к файлу —
+    // используется Node.tsx/ConnectionLayer.tsx, чтобы нода вызова cmd_function
+    // получила настоящие типизированные порты конкретно этой функции.
+    loadFunctionSignature: async (file) => {
+        if (!file || file in get().functionSignatures) return;
+        // Сразу помечаем "в процессе/нет сигнатуры" — не даёт параллельным
+        // инстансам той же функции задублировать fetch, и остаётся корректным
+        // финальным значением, если сигнатуры в файле действительно нет.
+        set((state) => ({ functionSignatures: { ...state.functionSignatures, [file]: null } }));
+        try {
+            // no-store — иначе после редактирования пинов (запись идёт мимо
+            // HTTP, напрямую на диск через File System Access) браузер может
+            // отдать старый закэшированный ответ, и порты ноды вызова останутся
+            // в прежнем виде до перезагрузки страницы.
+            const res = await fetch(`/${file}`, { cache: 'no-store' });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data?.signature?.pins?.length) {
+                set((state) => ({ functionSignatures: { ...state.functionSignatures, [file]: data.signature } }));
+            }
+        } catch {
+            // остаётся null — считаем, что сигнатуры нет
+        }
+    },
+
+    // Вызывается сразу после успешного сохранения пинов на диск (конструктор
+    // функции / форма редактирования в FunctionsPanel) — чтобы уже открытые
+    // ноды вызова этой функции обновили порты немедленно, без перезагрузки
+    // страницы и без зависимости от того, не отдаст ли fetch кэш.
+    setFunctionSignature: (file, signature) => set((state) => ({
+        functionSignatures: { ...state.functionSignatures, [file]: signature }
+    })),
 
     // Undo/Redo actions
     undo: () => set((state) => {

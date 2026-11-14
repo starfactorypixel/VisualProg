@@ -1,104 +1,157 @@
 import React, { useEffect, useRef } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
+import { resolveNodeDefinition } from '../../utils/functionSignature';
+import { FunctionSignature } from '../../types/function';
+import { shallow } from 'zustand/shallow';
 import { AnimationManager } from './AnimationManager';
 
 const HEADER_HEIGHT = 32;
 
-// Пересчитывает SVG-путь для связи с учётом позиций нод
-// Используется как при рендере, так и при ghost drag (прямое DOM-обновление)
-function calcConnectionPath(
-    conn: { fromNodeId: string; fromPortId: string; toNodeId: string; toPortId: string },
-    fromNodePos: { x: number; y: number },
-    toNodePos: { x: number; y: number },
-    fromNode: { type: string; definitionId: string },
-    toNode: { type: string; definitionId: string },
+type PortInfo = { x: number; y: number; dx: number; dy: number; type: string };
+
+// Единственный источник истины для координат пина: используется и при обычном
+// рендере (connectionPaths/getPortInfo), и при ghost drag (прямое обновление
+// DOM, пока нода двигается). Раньше это были две независимые копии формулы
+// офсета, которые разошлись — провод во время перетаскивания "отлипал" от
+// пина (смещался к центру ноды), а на mouseup резко прыгал на правильное место.
+function getPortPosition(
+    node: { type: string; definitionId: string; position: { x: number; y: number }; data?: any },
+    portId: string,
+    portType: 'input' | 'output',
     nodeDefinitions: any[],
-    dataTypes: any[]
-): string | null {
-    function getPortInfo(
-        node: { type: string; definitionId: string; position: { x: number; y: number } },
-        portId: string,
-        portType: 'input' | 'output'
-    ) {
-        const getBaseType = (t: string) => t.toLowerCase().startsWith('ref:') ? t.toLowerCase().slice(4) : t.toLowerCase();
-        const isExec = (t: string) => getBaseType(t) === 'execution';
+    functionSignatures: Record<string, FunctionSignature | null>
+): PortInfo | null {
+    const getBaseType = (t: string) => t.toLowerCase().startsWith('ref:') ? t.toLowerCase().slice(4) : t.toLowerCase();
+    const isExec = (t: string) => getBaseType(t) === 'execution';
 
-        if (node.type === 'data') {
-            const w = 150, h = 86;
-            const p = { x: 0, y: 0, dx: 0, dy: 0 };
-            if (portId === 'left')   { p.x = node.position.x;         p.y = node.position.y + h/2; p.dx = -1; }
-            else if (portId === 'right')  { p.x = node.position.x + w; p.y = node.position.y + h/2; p.dx = 1; }
-            else if (portId === 'top')    { p.x = node.position.x + w/2; p.y = node.position.y;     p.dy = -1; }
-            else if (portId === 'bottom') { p.x = node.position.x + w/2; p.y = node.position.y + h; p.dy = 1; }
-            return p;
-        }
+    if (node.type === 'data') {
+        const w = 150, h = 86;
+        const info: PortInfo = { x: 0, y: 0, dx: 0, dy: 0, type: node.definitionId };
+        if (portId === 'left') { info.x = node.position.x; info.y = node.position.y + h / 2; info.dx = -1; }
+        else if (portId === 'right') { info.x = node.position.x + w; info.y = node.position.y + h / 2; info.dx = 1; }
+        else if (portId === 'top') { info.x = node.position.x + w / 2; info.y = node.position.y; info.dy = -1; }
+        else if (portId === 'bottom') { info.x = node.position.x + w / 2; info.y = node.position.y + h; info.dy = 1; }
+        else { info.x = node.position.x + w / 2; info.y = node.position.y + h / 2; info.dx = 1; }
+        return info;
+    }
 
-        const def = nodeDefinitions.find((d: any) => d.id === node.definitionId);
-        if (!def) return null;
+    const def = resolveNodeDefinition(node, nodeDefinitions, functionSignatures);
+    if (!def) return null;
 
-        const inputs = def.inputs || [];
-        const outputs = def.outputs || [];
-        const execInputs = inputs.filter((p: any) => isExec(p.type));
-        const execOutputs = outputs.filter((p: any) => isExec(p.type));
-        const dataInputs = inputs.filter((p: any) => !isExec(p.type));
-        const dataOutputs = outputs.filter((p: any) => !isExec(p.type));
-        const execRows = Math.max(execInputs.length, execOutputs.length);
+    const inputs = def.inputs || [];
+    const outputs = def.outputs || [];
+    const port = (portType === 'input' ? inputs : outputs).find((p: any) => p.id === portId);
+    if (!port) return null;
 
-        const ports = portType === 'input' ? inputs : outputs;
-        const port = ports.find((p: any) => p.id === portId);
-        if (!port) return null;
+    const execInputs = inputs.filter((p: any) => isExec(p.type));
+    const execOutputs = outputs.filter((p: any) => isExec(p.type));
+    const dataInputs = inputs.filter((p: any) => !isExec(p.type));
+    const dataOutputs = outputs.filter((p: any) => !isExec(p.type));
+    const execRows = Math.max(execInputs.length, execOutputs.length);
 
-        const eIdx = portType === 'input'
-            ? execInputs.findIndex((p: any) => p.id === portId)
-            : execOutputs.findIndex((p: any) => p.id === portId);
+    const eIdx = portType === 'input'
+        ? execInputs.findIndex((p: any) => p.id === portId)
+        : execOutputs.findIndex((p: any) => p.id === portId);
 
-        let visualIndex = 0;
-        if (eIdx !== -1) {
-            visualIndex = eIdx;
-        } else {
-            const dIdx = portType === 'input'
-                ? dataInputs.findIndex((p: any) => p.id === portId)
-                : dataOutputs.findIndex((p: any) => p.id === portId);
-            visualIndex = execRows + dIdx;
-        }
+    let visualIndex = 0;
+    let foundInData = false;
 
-        const offsetY = HEADER_HEIGHT + 8 + visualIndex * 25 + 8;
-        if (portType === 'output') {
-            return { x: node.position.x + 136, y: node.position.y + offsetY, dx: 1, dy: 0 };
-        } else {
-            return { x: node.position.x + 14, y: node.position.y + offsetY, dx: -1, dy: 0 };
+    if (eIdx !== -1) {
+        visualIndex = eIdx;
+    } else {
+        const dInputIdx = dataInputs.findIndex((p: any) => p.id === portId);
+        const dOutputIdx = dataOutputs.findIndex((p: any) => p.id === portId);
+        if (portType === 'input' && dInputIdx !== -1) {
+            visualIndex = dInputIdx;
+            foundInData = true;
+        } else if (portType === 'output' && dOutputIdx !== -1) {
+            visualIndex = dataInputs.length + dOutputIdx;
+            foundInData = true;
         }
     }
 
-    const fromInfo = getPortInfo(
-        { ...fromNode, position: fromNodePos },
-        conn.fromPortId, 'output'
-    );
-    const toInfo = getPortInfo(
-        { ...toNode, position: toNodePos },
-        conn.toPortId, 'input'
-    );
-    if (!fromInfo || !toInfo) return null;
+    let offsetY = HEADER_HEIGHT + 8;
 
+    if (node.definitionId === 'cmd_function') {
+        // Блок "file" в теле ноды (см. Node.tsx): инпут пути (h-7=28px) + отступ
+        // до списка портов. У блока свой mb-2 (8px), а у списка портов — margin-top
+        // от родительского space-y-2 (тоже 8px); это соседние блочные margin'ы,
+        // по правилам CSS они схлопываются в один (max), а не складываются — так
+        // что тут только один "+8", не два. Плюс кнопка "Open in New Window"
+        // (space-y-1=4px + h-6=24px), если путь к файлу уже задан.
+        offsetY += 28 + 8;
+        if (node.data?.file) offsetY += 4 + 24;
+    }
+
+    if (foundInData) {
+        offsetY += execRows * 24;
+        if (execRows > 0 && (dataInputs.length > 0 || dataOutputs.length > 0)) {
+            offsetY += 16;
+        }
+    }
+
+    offsetY += visualIndex * 24;
+    offsetY += 8;
+
+    if (portType === 'output') {
+        return { x: node.position.x + 136, y: node.position.y + offsetY, dx: 1, dy: 0, type: port.type };
+    }
+    return { x: node.position.x + 14, y: node.position.y + offsetY, dx: -1, dy: 0, type: port.type };
+}
+
+// Геометрия кривой (нуб + контрольные точки) — тоже общая для обоих режимов рендера.
+function computeConnectionGeometry(
+    fromInfo: { x: number; y: number; dx: number; dy: number },
+    toInfo: { x: number; y: number; dx: number; dy: number },
+    fromNodeTopY: number,
+    toNodeTopY: number
+) {
     const nubLen = 35;
     const deltaX = Math.abs(toInfo.x - fromInfo.x);
     const deltaY = Math.abs(toInfo.y - fromInfo.y);
     const controlDist = Math.max(Math.max(deltaX, deltaY) * 0.2, 25);
 
     const sNub = { x: fromInfo.x + fromInfo.dx * nubLen, y: fromInfo.y + fromInfo.dy * nubLen };
-    const eNub = { x: toInfo.x  + toInfo.dx  * nubLen, y: toInfo.y  + toInfo.dy  * nubLen };
+    const eNub = { x: toInfo.x + toInfo.dx * nubLen, y: toInfo.y + toInfo.dy * nubLen };
 
     let cp1 = { x: sNub.x + fromInfo.dx * controlDist, y: sNub.y + fromInfo.dy * controlDist };
-    let cp2 = { x: eNub.x + toInfo.dx  * controlDist, y: eNub.y  + toInfo.dy  * controlDist };
+    let cp2 = { x: eNub.x + toInfo.dx * controlDist, y: eNub.y + toInfo.dy * controlDist };
 
     const isBackwards = fromInfo.dx > 0 && toInfo.dx < 0 && toInfo.x < fromInfo.x;
     if (isBackwards) {
-        const topY = Math.min(fromNodePos.y, toNodePos.y);
-        cp1 = { x: fromInfo.x + 300, y: topY - 60 };
-        cp2 = { x: toInfo.x  - 300, y: topY - 60 };
+        const topY = Math.min(fromNodeTopY, toNodeTopY) - 60;
+        cp1 = { x: fromInfo.x + 300, y: topY };
+        cp2 = { x: toInfo.x - 300, y: topY };
     }
 
-    return `M ${fromInfo.x} ${fromInfo.y} L ${sNub.x} ${sNub.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${eNub.x} ${eNub.y} L ${toInfo.x} ${toInfo.y}`;
+    return { sNub, eNub, cp1, cp2 };
+}
+
+function pathDFromGeometry(
+    fromInfo: { x: number; y: number },
+    toInfo: { x: number; y: number },
+    geo: ReturnType<typeof computeConnectionGeometry>
+): string {
+    return `M ${fromInfo.x} ${fromInfo.y} L ${geo.sNub.x} ${geo.sNub.y} C ${geo.cp1.x} ${geo.cp1.y}, ${geo.cp2.x} ${geo.cp2.y}, ${geo.eNub.x} ${geo.eNub.y} L ${toInfo.x} ${toInfo.y}`;
+}
+
+// Пересчитывает SVG-путь для связи с учётом позиций нод
+// Используется при ghost drag для прямого обновления DOM пока нода двигается
+function calcConnectionPath(
+    conn: { fromNodeId: string; fromPortId: string; toNodeId: string; toPortId: string },
+    fromNodePos: { x: number; y: number },
+    toNodePos: { x: number; y: number },
+    fromNode: { type: string; definitionId: string; data?: any },
+    toNode: { type: string; definitionId: string; data?: any },
+    nodeDefinitions: any[],
+    functionSignatures: Record<string, FunctionSignature | null>
+): string | null {
+    const fromInfo = getPortPosition({ ...fromNode, position: fromNodePos }, conn.fromPortId, 'output', nodeDefinitions, functionSignatures);
+    const toInfo = getPortPosition({ ...toNode, position: toNodePos }, conn.toPortId, 'input', nodeDefinitions, functionSignatures);
+    if (!fromInfo || !toInfo) return null;
+
+    const geo = computeConnectionGeometry(fromInfo, toInfo, fromNodePos.y, toNodePos.y);
+    return pathDFromGeometry(fromInfo, toInfo, geo);
 }
 
 interface ConnectionLayerProps {
@@ -106,11 +159,26 @@ interface ConnectionLayerProps {
 }
 
 export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu }) => {
+    // Селектор+shallow — без него компонент (рендерит по 4 SVG-элемента на КАЖДУЮ
+    // связь) перерисовывался на любое изменение стора, включая draggingState,
+    // который меняется на каждый тик во время драга в магнитном режиме, хотя
+    // сам ConnectionLayer draggingState вообще не использует.
     const {
         connections, nodes, nodeDefinitions, dataTypes,
         selectedPort, pan, scale,
-        hoveredNodeId, hoveredType
-    } = useEditorStore();
+        hoveredNodeId, hoveredType, functionSignatures
+    } = useEditorStore((state) => ({
+        connections: state.connections,
+        nodes: state.nodes,
+        nodeDefinitions: state.nodeDefinitions,
+        dataTypes: state.dataTypes,
+        selectedPort: state.selectedPort,
+        pan: state.pan,
+        scale: state.scale,
+        hoveredNodeId: state.hoveredNodeId,
+        hoveredType: state.hoveredType,
+        functionSignatures: state.functionSignatures,
+    }), shallow);
 
     // Track mouse position for temporary connection line
     const [mousePos, setMousePos] = React.useState<{ x: number; y: number } | null>(null);
@@ -127,14 +195,30 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
             const rawY = e.clientY - rect.top;
             const worldX = (rawX - pan.x) / scale;
             const worldY = (rawY - pan.y) / scale;
-            setMousePos({ x: worldX, y: worldY });
 
-            // Ghost drag: обновляем связи напрямую в DOM пока нода двигается
-            const draggingEl = document.querySelector<HTMLElement>('[data-node-id][style*="translate"]');
-            if (!draggingEl) return;
+            // mousePos как React state нужен ТОЛЬКО чтобы рисовать пунктирную линию
+            // предпросмотра связи, пока активен click-to-link (selectedPort не пуст).
+            // Без этой проверки setMousePos вызывался на КАЖДОЕ движение мыши во всём
+            // приложении, всегда — даже когда никто ничего не тащит и не соединяет —
+            // и перерисовывал ConnectionLayer (4 SVG-элемента на каждую связь) на
+            // каждый mousemove. Это и было основным источником тормозов, который не
+            // зависел от магнитного режима и не лечился оптимизацией стора.
+            if (useEditorStore.getState().selectedPort) {
+                setMousePos({ x: worldX, y: worldY });
+            }
 
-            const draggingNodeId = draggingEl.getAttribute('data-node-id');
+            // Ghost drag: обновляем связи напрямую в DOM пока нода двигается.
+            // Сначала дешёвая проверка по стору (знаем id таскаемой ноды из
+            // draggingState) — и только если реально идёт драг, лезем в DOM.
+            // Раньше тут безусловно, на КАЖДЫЙ mousemove (включая простое наведение
+            // мыши без всякого перетаскивания), делался document.querySelector по
+            // подстроке в style — т.е. полное сканирование всех [data-node-id]
+            // элементов на странице.
+            const draggingNodeId = useEditorStore.getState().draggingState?.nodeId;
             if (!draggingNodeId) return;
+
+            const draggingEl = document.querySelector<HTMLElement>(`[data-node-id="${draggingNodeId}"]`);
+            if (!draggingEl) return;
 
             const match = draggingEl.style.transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
             if (!match) return;
@@ -167,7 +251,7 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
                     ? { x: toNode.position.x + dx, y: toNode.position.y + dy }
                     : toNode.position;
 
-                const d = calcConnectionPath(conn, fromPos, toPos, fromNode, toNode, store.nodeDefinitions, store.dataTypes);
+                const d = calcConnectionPath(conn, fromPos, toPos, fromNode, toNode, store.nodeDefinitions, store.functionSignatures);
                 if (d) pathEl.setAttribute('d', d);
             });
         };
@@ -195,6 +279,25 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
         ex: number; ey: number; tx: number; ty: number;
     };
     const pathsRef = useRef<Map<string, PathData>>(new Map());
+
+    // Бегущие огоньки считаются и дёргают setAttribute на каждый тик (30 раз/сек)
+    // для ВСЕХ связей сразу, включая невидимые на экране — на большом графе это
+    // заметная постоянная фоновая нагрузка. Ограничиваем до MAX_ANIMATED_DOTS
+    // одновременно анимируемых связей из числа реально видимых в текущей
+    // области/масштабе, и каждый новый цикл (AnimationManager.cycleDuration)
+    // показываем следующую "корзину" по кругу — связи раскладываются по корзинам
+    // через остаток от деления индекса (i % bucketCount), а не сплошным блоком
+    // подряд идущих в массиве, так что активные связи равномерно распределены
+    // по графу, а не кучкуются там, где они просто оказались рядом в массиве.
+    const MAX_ANIMATED_DOTS = 25;
+    const rotationOffsetRef = useRef(0);
+    const activeDotIdsRef = useRef<Set<string>>(new Set());
+    const lastTickRef = useRef(0);
+    // Плавность переключения между "активна"/"не активна" — 0..1, двигается на
+    // ACTIVATION_STEP за тик вместо мгновенного вкл/выкл, чтобы не было резкого
+    // хлопка при смене корзины.
+    const activationRef = useRef<Map<string, number>>(new Map());
+    const ACTIVATION_STEP = 1 / 12; // ~0.4с на полное появление/исчезание при 30fps
 
     useEffect(() => {
         // Helpers for composite path: Line(from→sNub) + Bezier(sNub→eNub) + Line(eNub→to)
@@ -233,8 +336,73 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
             return { x: bez(bt,p.sx,p.c1x,p.c2x,p.ex), y: bez(bt,p.sy,p.c1y,p.c2y,p.ey) };
         }
 
-        const unsub = AnimationManager.subscribe('svg-dots', (tick) => {
+        // Пересчитывает набор "активных" (анимируемых) связей: берёт только те,
+        // чья геометрия пересекает текущую видимую область канваса (в мировых
+        // координатах, с учётом pan/scale на момент вызова), и если их больше
+        // лимита — делит на корзины по (индекс % bucketCount) и каждый цикл
+        // показывает одну корзину целиком, по кругу.
+        function recomputeActiveDots() {
+            const { pan: curPan, scale: curScale } = useEditorStore.getState();
+            const rect = document.getElementById('canvas-container')?.getBoundingClientRect();
+            const w = rect?.width ?? window.innerWidth;
+            const h = rect?.height ?? window.innerHeight;
+            const margin = 150; // запас в мировых пикселях, чтобы огоньки не выключались точно на границе экрана
+            const viewX1 = -curPan.x / curScale - margin;
+            const viewY1 = -curPan.y / curScale - margin;
+            const viewX2 = (-curPan.x + w) / curScale + margin;
+            const viewY2 = (-curPan.y + h) / curScale + margin;
+
+            const visibleIds: string[] = [];
             pathsRef.current.forEach((p, id) => {
+                const minX = Math.min(p.fx, p.sx, p.c1x, p.c2x, p.ex, p.tx);
+                const maxX = Math.max(p.fx, p.sx, p.c1x, p.c2x, p.ex, p.tx);
+                const minY = Math.min(p.fy, p.sy, p.c1y, p.c2y, p.ey, p.ty);
+                const maxY = Math.max(p.fy, p.sy, p.c1y, p.c2y, p.ey, p.ty);
+                if (maxX >= viewX1 && minX <= viewX2 && maxY >= viewY1 && minY <= viewY2) {
+                    visibleIds.push(id);
+                }
+            });
+
+            if (visibleIds.length <= MAX_ANIMATED_DOTS) {
+                activeDotIdsRef.current = new Set(visibleIds);
+                return;
+            }
+
+            const bucketCount = Math.ceil(visibleIds.length / MAX_ANIMATED_DOTS);
+            rotationOffsetRef.current = (rotationOffsetRef.current + 1) % bucketCount;
+            const bucket = rotationOffsetRef.current;
+            const active = new Set<string>();
+            visibleIds.forEach((id, i) => {
+                if (i % bucketCount === bucket) active.add(id);
+            });
+            activeDotIdsRef.current = active;
+        }
+
+        recomputeActiveDots();
+
+        const unsub = AnimationManager.subscribe('svg-dots', (tick) => {
+            // Начало нового цикла (tick обёрнулся с ~1 на ~0) — сдвигаем окно ротации
+            if (tick < lastTickRef.current) {
+                recomputeActiveDots();
+            }
+            lastTickRef.current = tick;
+
+            pathsRef.current.forEach((p, id) => {
+                const isActive = activeDotIdsRef.current.has(id);
+                const prevRamp = activationRef.current.get(id) ?? 0;
+                const ramp = isActive
+                    ? Math.min(1, prevRamp + ACTIVATION_STEP)
+                    : Math.max(0, prevRamp - ACTIVATION_STEP);
+                if (ramp !== prevRamp) activationRef.current.set(id, ramp);
+
+                if (ramp <= 0) {
+                    const d1 = dot1Refs.current.get(id);
+                    const d2 = dot2Refs.current.get(id);
+                    if (d1) d1.setAttribute('opacity', '0');
+                    if (d2) d2.setAttribute('opacity', '0');
+                    return;
+                }
+
                 for (const [dot, phase] of [
                     [dot1Refs.current.get(id), 0],
                     [dot2Refs.current.get(id), 0.5]
@@ -245,6 +413,7 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
                     if (t < 0.1) op = t / 0.1;
                     else if (t < 0.85) op = 1;
                     else op = 1 - (t - 0.85) / 0.15;
+                    op *= ramp;
                     dot.setAttribute('opacity', String(op));
                     if (op > 0.01) {
                         const pos = pointOnPath(t, p);
@@ -266,97 +435,11 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
         return dt ? dt.color : '#828282';
     }, [dataTypes]);
 
-    const getPortInfo = React.useCallback((nodeId: string, portId: string, type: 'input' | 'output') => {
+    const getPortInfo = React.useCallback((nodeId: string, portId: string, type: 'input' | 'output'): PortInfo => {
         const node = nodes.find(n => n.id === nodeId);
         if (!node) return { x: 0, y: 0, dx: 1, dy: 0, type: 'any' };
-
-        if (node.type === 'data') {
-            const w = 150;
-            const h = 86;
-            const info = { x: 0, y: 0, dx: 0, dy: 0, type: node.definitionId };
-            if (portId === 'left') { info.x = node.position.x; info.y = node.position.y + (h / 2); info.dx = -1; }
-            else if (portId === 'right') { info.x = node.position.x + w; info.y = node.position.y + (h / 2); info.dx = 1; }
-            else if (portId === 'top') { info.x = node.position.x + (w / 2); info.y = node.position.y; info.dy = -1; }
-            else if (portId === 'bottom') { info.x = node.position.x + (w / 2); info.y = node.position.y + h; info.dy = 1; }
-            else { info.x = node.position.x + (w / 2); info.y = node.position.y + (h / 2); info.dx = 1; }
-            return info;
-        }
-
-        let targetDef = nodeDefinitions.find(d => d.id === node.definitionId);
-        if (!targetDef) return { x: 0, y: 0, dx: 1, dy: 0, type: 'any' };
-
-        const port = type === 'input'
-            ? targetDef.inputs?.find(p => p.id === portId)
-            : targetDef.outputs?.find(p => p.id === portId);
-
-        if (!port) return { x: 0, y: 0, dx: 1, dy: 0, type: 'any' };
-
-        const isExec = (t: string) => getBaseType(t) === 'execution';
-        const inputs = targetDef.inputs || [];
-        const outputs = targetDef.outputs || [];
-
-        const execInputs = inputs.filter(p => isExec(p.type));
-        const execOutputs = outputs.filter(p => isExec(p.type));
-        const dataInputs = inputs.filter(p => !isExec(p.type));
-        const dataOutputs = outputs.filter(p => !isExec(p.type));
-
-        const execRows = Math.max(execInputs.length, execOutputs.length);
-
-        let visualIndex = 0;
-        let found = false;
-        let foundInData = false;
-
-        const eIdx = type === 'input'
-            ? execInputs.findIndex(p => p.id === portId)
-            : execOutputs.findIndex(p => p.id === portId);
-
-        if (eIdx !== -1) {
-            visualIndex = eIdx;
-            found = true;
-        }
-
-        if (!found) {
-            const dInputIdx = dataInputs.findIndex(p => p.id === portId);
-            const dOutputIdx = dataOutputs.findIndex(p => p.id === portId);
-
-            if (type === 'input' && dInputIdx !== -1) {
-                visualIndex = dInputIdx;
-                found = true;
-                foundInData = true;
-            } else if (type === 'output' && dOutputIdx !== -1) {
-                visualIndex = dataInputs.length + dOutputIdx;
-                found = true;
-                foundInData = true;
-            }
-        }
-
-        if (!found) return { x: 0, y: 0, dx: 1, dy: 0, type: 'any' };
-
-        let offsetY = HEADER_HEIGHT + 8;
-
-        if (node.definitionId === 'cmd_function') {
-            offsetY += 28;
-            if (node.data?.file) offsetY += 4 + 24;
-            offsetY += 8;
-            offsetY += 8;
-        }
-
-        if (foundInData) {
-            offsetY += (execRows * 24);
-            if (execRows > 0 && (dataInputs.length > 0 || dataOutputs.length > 0)) {
-                offsetY += 16;
-            }
-        }
-
-        offsetY += (visualIndex * 24);
-        offsetY += 8;
-
-        if (type === 'output') {
-            return { x: node.position.x + 136, y: node.position.y + offsetY, dx: 1, dy: 0, type: port.type };
-        } else {
-            return { x: node.position.x + 14, y: node.position.y + offsetY, dx: -1, dy: 0, type: port.type };
-        }
-    }, [nodes, nodeDefinitions]);
+        return getPortPosition(node, portId, type, nodeDefinitions, functionSignatures) ?? { x: 0, y: 0, dx: 1, dy: 0, type: 'any' };
+    }, [nodes, nodeDefinitions, functionSignatures]);
 
     const connectionPaths = React.useMemo(() => {
         return connections.map(conn => {
@@ -375,39 +458,24 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
                 ))
             );
 
-            const nubLen = 35;
-            const deltaX = Math.abs(toInfo.x - fromInfo.x);
-            const deltaY = Math.abs(toInfo.y - fromInfo.y);
-            const controlDist = Math.max(Math.max(deltaX, deltaY) * 0.2, 25);
+            const fromNode = nodes.find(n => n.id === conn.fromNodeId);
+            const toNode = nodes.find(n => n.id === conn.toNodeId);
+            const geo = computeConnectionGeometry(
+                fromInfo, toInfo,
+                fromNode?.position.y ?? fromInfo.y,
+                toNode?.position.y ?? toInfo.y
+            );
 
-            const sNub = { x: fromInfo.x + (fromInfo.dx * nubLen), y: fromInfo.y + (fromInfo.dy * nubLen) };
-            const eNub = { x: toInfo.x + (toInfo.dx * nubLen), y: toInfo.y + (toInfo.dy * nubLen) };
-
-            let cp1 = { x: sNub.x + (fromInfo.dx * controlDist), y: sNub.y + (fromInfo.dy * controlDist) };
-            let cp2 = { x: eNub.x + (toInfo.dx * controlDist), y: eNub.y + (toInfo.dy * controlDist) };
-
-            const isBackwards = fromInfo.dx > 0 && toInfo.dx < 0 && toInfo.x < fromInfo.x;
-            if (isBackwards) {
-                const fromNode = nodes.find(n => n.id === conn.fromNodeId);
-                const toNode = nodes.find(n => n.id === conn.toNodeId);
-                const topY = Math.min(fromNode?.position.y ?? fromInfo.y, toNode?.position.y ?? toInfo.y);
-                const arcHeight = topY - 60;
-                cp1.y = arcHeight;
-                cp2.y = arcHeight;
-                cp1.x = fromInfo.x + 300;
-                cp2.x = toInfo.x - 300;
-            }
-
-            const path = `M ${fromInfo.x} ${fromInfo.y} L ${sNub.x} ${sNub.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${eNub.x} ${eNub.y} L ${toInfo.x} ${toInfo.y}`;
+            const path = pathDFromGeometry(fromInfo, toInfo, geo);
             const connColor = getPortColor(fromInfo.type);
 
             // Store path geometry for AnimationManager dot positioning
             pathsRef.current.set(conn.id, {
                 fx: fromInfo.x, fy: fromInfo.y,
-                sx: sNub.x, sy: sNub.y,
-                c1x: cp1.x, c1y: cp1.y,
-                c2x: cp2.x, c2y: cp2.y,
-                ex: eNub.x, ey: eNub.y,
+                sx: geo.sNub.x, sy: geo.sNub.y,
+                c1x: geo.cp1.x, c1y: geo.cp1.y,
+                c2x: geo.cp2.x, c2y: geo.cp2.y,
+                ex: geo.eNub.x, ey: geo.eNub.y,
                 tx: toInfo.x, ty: toInfo.y,
             });
 
@@ -422,6 +490,8 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({ onContextMenu 
             dot1Refs.current.delete(id);
             dot2Refs.current.delete(id);
             pathsRef.current.delete(id);
+            activeDotIdsRef.current.delete(id);
+            activationRef.current.delete(id);
         }
     });
 

@@ -1,20 +1,46 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { NodeInstance, NodeDefinition } from '../../types';
 import { useEditorStore } from '../../store/useEditorStore';
+import { resolveNodeDefinition } from '../../utils/functionSignature';
+import { shallow } from 'zustand/shallow';
 import clsx from 'clsx';
 import { Lock, Unlock } from 'lucide-react';
 
 interface NodeProps {
     data: NodeInstance;
-    onContextMenu?: (e: React.MouseEvent) => void;
+    onContextMenu?: (e: React.MouseEvent, nodeId: string) => void;
 }
 
 export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
+    // Нода рендерится в мировых координатах (left/top = data.position), масштаб
+    // накладывается CSS-трансформом на общий wrapper в Canvas.tsx — самому
+    // компоненту scale/pan/draggingState и т.п. не нужны. Без селектора+shallow
+    // здесь каждая из N нод на канвасе перерисовывалась бы на ЛЮБОЕ изменение
+    // стора целиком: зум колесом, панорамирование, драг другой ноды в магнитном
+    // режиме — хотя их вывод ни от чего из этого не зависит.
     const {
         nodeDefinitions, updateNodePosition, updateNodeData, dataTypes,
+        beginFieldEdit, commitFieldEdit,
         hoveredType, hoveredNodeId, connections, setHoveredNodeId,
-        selectedNodeIds, selectNode, selectedPort
-    } = useEditorStore();
+        selectedNodeIds, selectNode, selectedPort,
+        functionSignatures, loadFunctionSignature
+    } = useEditorStore((state) => ({
+        nodeDefinitions: state.nodeDefinitions,
+        updateNodePosition: state.updateNodePosition,
+        updateNodeData: state.updateNodeData,
+        dataTypes: state.dataTypes,
+        beginFieldEdit: state.beginFieldEdit,
+        commitFieldEdit: state.commitFieldEdit,
+        hoveredType: state.hoveredType,
+        hoveredNodeId: state.hoveredNodeId,
+        connections: state.connections,
+        setHoveredNodeId: state.setHoveredNodeId,
+        selectedNodeIds: state.selectedNodeIds,
+        selectNode: state.selectNode,
+        selectedPort: state.selectedPort,
+        functionSignatures: state.functionSignatures,
+        loadFunctionSignature: state.loadFunctionSignature,
+    }), shallow);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [hoveredPort, setHoveredPort] = useState<{ portId: string; type: 'input' | 'output' } | null>(null);
@@ -26,7 +52,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
     let definition: NodeDefinition | undefined;
 
     if (data.type === 'command') {
-        definition = nodeDefinitions.find(def => def.id === data.definitionId);
+        definition = resolveNodeDefinition(data, nodeDefinitions, functionSignatures);
     } else {
         const dataType = dataTypes.find(dt => dt.name === data.definitionId);
         if (dataType) {
@@ -83,11 +109,19 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
         if (!state.selectedPort || state.selectedPort.fromNodeId === data.id) return false;
         const fromType = state.selectedPort.fromPortTypeStr.toLowerCase();
         const fromPortType = state.selectedPort.fromPortType;
+        const fromNode = state.nodes.find(n => n.id === state.selectedPort!.fromNodeId);
 
         const getBaseType = (t: string) => t.startsWith('ref:') ? t.slice(4) : t;
         const btFrom = getBaseType(fromType);
 
-        const targetPorts = fromPortType === 'output' ? definition?.inputs : definition?.outputs;
+        // Дата-нода (источник связи) не имеет жёсткой роли — её сторону
+        // completeLinking подберёт сам (см. resolveDirection в сторе), поэтому
+        // для неё ищем совпадение и во входах, и в выходах этой ноды. Для
+        // строго однонаправленного источника (обычная команда/пин) роль
+        // известна заранее — смотрим только противоположный список, как раньше.
+        const targetPorts = fromNode?.type === 'data'
+            ? [...(definition?.inputs || []), ...(definition?.outputs || [])]
+            : (fromPortType === 'output' ? definition?.inputs : definition?.outputs);
         return targetPorts?.some(p => {
             const btTarget = getBaseType(p.type.toLowerCase());
             return btFrom === btTarget || fromType === 'any' || p.type.toLowerCase() === 'any';
@@ -105,18 +139,24 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
     // Check if a specific port is compatible with the selected port
     const isPortCompatible = (portId: string, type: 'input' | 'output') => {
         if (!selectedPort || selectedPort.fromNodeId === data.id) return false;
-        
+
         const port = (type === 'input' ? definition?.inputs : definition?.outputs)?.find(p => p.id === portId);
         if (!port) return false;
-        
-        // Must be opposite type (input <-> output)
-        if (type === selectedPort.fromPortType) return false;
-        
+
         const getBaseType = (t: string) => t.startsWith('ref:') ? t.slice(4) : t;
         const btFrom = getBaseType(selectedPort.fromPortTypeStr.toLowerCase());
         const btTarget = getBaseType(port.type.toLowerCase());
-        
-        return btFrom === btTarget || selectedPort.fromPortTypeStr.toLowerCase() === 'any' || port.type.toLowerCase() === 'any';
+        const typesMatch = btFrom === btTarget || selectedPort.fromPortTypeStr.toLowerCase() === 'any' || port.type.toLowerCase() === 'any';
+        if (!typesMatch) return false;
+
+        // Совпадающие роли (оба "output" или оба "input") в норме недопустимы —
+        // два исхода не сведутся в один провод. Исключение: источник связи —
+        // дата-нода, у которой роль была выбрана "по умолчанию" в момент клика
+        // (см. getPortType), а не задана жёстко — completeLinking сам подберёт
+        // нужную сторону (resolveDirection), так что роль тут не повод отказывать.
+        if (type !== selectedPort.fromPortType) return true;
+        const fromNode = useEditorStore.getState().nodes.find(n => n.id === selectedPort.fromNodeId);
+        return fromNode?.type === 'data';
     };
 
     const isHighlighted = isHoveredTypeMatch || isHoveredNodeMatch || isLinkingMatch;
@@ -203,18 +243,36 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                 finalDx = targetPos.x - dragStartNodePos.current.x;
                 finalDy = targetPos.y - dragStartNodePos.current.y;
 
-                // Обновляем только draggingState (isMagnetic-ring) — nodes не трогаем
+                // Обновляем только draggingState (isMagnetic-ring) — nodes не трогаем.
+                // Пишем в стор, только если что-то реально изменилось: эта запись на
+                // каждый mousemove долетает до ВСЕХ нод (они подписаны на весь стор
+                // без селектора), так что holostoy setState на каждый тик означал
+                // полный ре-рендер всего канваса 60+ раз в секунду даже когда мышь
+                // двигается внутри уже примагниченной/уже свободной зоны.
                 if (store.draggingState) {
-                    useEditorStore.setState({
-                        draggingState: {
-                            ...store.draggingState,
-                            isMagnetic: snapping,
-                            magneticPosition: snapping ? nearest!.point : null,
-                            // Ноды, уже стоящие в целевом ряду — на drop их нужно подтянуть
-                            // на ту же линию, иначе кластеризация рядов их не объединит
-                            magneticTargetRowIds: snapping ? nearest!.rowCommandNodeIds : []
-                        }
-                    });
+                    const prevMagnetic = store.draggingState;
+                    const newMagneticPosition = snapping ? nearest!.point : null;
+                    const newRowIds = snapping ? nearest!.rowCommandNodeIds : [];
+                    const samePosition = prevMagnetic.magneticPosition === newMagneticPosition
+                        || (!!prevMagnetic.magneticPosition && !!newMagneticPosition
+                            && prevMagnetic.magneticPosition.x === newMagneticPosition.x
+                            && prevMagnetic.magneticPosition.y === newMagneticPosition.y);
+                    const prevRowIds = prevMagnetic.magneticTargetRowIds ?? [];
+                    const sameRowIds = prevRowIds.length === newRowIds.length
+                        && prevRowIds.every((id, i) => id === newRowIds[i]);
+
+                    if (prevMagnetic.isMagnetic !== snapping || !samePosition || !sameRowIds) {
+                        useEditorStore.setState({
+                            draggingState: {
+                                ...prevMagnetic,
+                                isMagnetic: snapping,
+                                magneticPosition: newMagneticPosition,
+                                // Ноды, уже стоящие в целевом ряду — на drop их нужно подтянуть
+                                // на ту же линию, иначе кластеризация рядов их не объединит
+                                magneticTargetRowIds: newRowIds
+                            }
+                        });
+                    }
                 }
             }
 
@@ -255,7 +313,12 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
 
             // Коммитим финальные позиции одним setState
             useEditorStore.setState((state) => ({
-                draggingState: null,
+                // draggingState намеренно не трогаем здесь — в нём лежит снимок "до
+                // перемещения", нужный endDragging() ниже (вызывается для ОБОИХ
+                // режимов). Обнулить его тут же значило бы, что endDragging() увидит
+                // draggingState === null и выйдет сразу же (это её первая проверка),
+                // ничего не записав в историю — ноды визуально перемещались, а Undo
+                // не возвращал их обратно. Саму очистку draggingState сделает endDragging().
                 nodes: state.nodes.map(n => {
                     if (nodeIds.includes(n.id)) {
                         // Для магнитного snap одиночной ноды берём magneticPosition если есть
@@ -274,13 +337,21 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                 })
             }));
 
-            // После магнитного коммита — пересчитываем сетку
-            if (store.magneticGridMode) {
+            // После магнитного коммита — пересчитываем сетку. Пропускаем, если нода
+            // реально не сдвинулась (например, обычный клик по заголовку без драга) —
+            // recalculateGridRows/recalculateAndSnap пересобирают всю раскладку (там
+            // O(нод × рядов), причём внутри тройной проход), и дёргать это на каждый
+            // клик, которым ничего не меняется, бессмысленно дорого.
+            if (store.magneticGridMode && (isMagneticCommit || odx !== 0 || ody !== 0)) {
                 useEditorStore.getState().recalculateGrid();
             }
 
-            // Сохраняем историю (только для обычного режима)
-            if (!store.magneticGridMode && (store as any).endDragging) {
+            // Сохраняем историю — для обоих режимов (обычного и магнитного).
+            // finalPositions всегда непустой, так что endDragging() берёт ветку
+            // "обычный коммит" (просто пушит снимок в past) независимо от режима —
+            // позиции/сетку в магнитном режиме уже применили выше, повторно их
+            // пересчитывать тут не нужно.
+            if ((store as any).endDragging) {
                 const finalPositions = useEditorStore.getState().nodes
                     .filter(n => nodeIds.includes(n.id))
                     .map(n => ({ id: n.id, position: { ...n.position } }));
@@ -304,9 +375,18 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
         setTitle(data.data?.label || definition?.name || '');
     }, [data.data?.label, definition?.name]);
 
+    // Подгружаем сигнатуру пинов функции, чтобы нода вызова получила настоящие
+    // типизированные порты конкретно этого файла (см. resolveNodeDefinition).
+    useEffect(() => {
+        if (data.definitionId === 'cmd_function' && data.data?.file) {
+            loadFunctionSignature(data.data.file);
+        }
+    }, [data.definitionId, data.data?.file, loadFunctionSignature]);
+
     const handleTitleSubmit = () => {
         setIsEditingTitle(false);
         updateNodeData(data.id, { label: title });
+        commitFieldEdit(data.id);
     };
 
     const isSelected = selectedNodeIds.includes(data.id);
@@ -328,7 +408,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                 top: data.position.y,
                 borderColor: isHighlighted ? '#fff' : (isMagnetic ? '#3b82f6' : (definition.visual?.color || '#555'))
             }}
-            onContextMenu={onContextMenu}
+            onContextMenu={(e) => onContextMenu?.(e, data.id)}
             onMouseEnter={() => setHoveredNodeId(data.id)}
             onMouseLeave={() => setHoveredNodeId(null)}
         >
@@ -348,6 +428,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         className="w-full bg-neutral-900 text-neutral-200 border-none outline-none rounded px-1 -ml-1 h-6"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        onFocus={() => beginFieldEdit(data.id)}
                         onBlur={handleTitleSubmit}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') handleTitleSubmit();
@@ -422,6 +503,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         value={data.data.value || ''}
                                         disabled={data.data.locked}
                                         onChange={(e) => updateNodeData(data.id, { value: e.target.value })}
+                                        onFocus={() => beginFieldEdit(data.id)}
+                                        onBlur={() => commitFieldEdit(data.id)}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
                                         <option value="">— не выбрано — (Pick from {groupName}...)</option>
@@ -442,6 +525,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         value={data.data.value || ''}
                                         disabled={data.data.locked}
                                         onChange={(e) => updateNodeData(data.id, { value: e.target.value })}
+                                        onFocus={() => beginFieldEdit(data.id)}
+                                        onBlur={() => commitFieldEdit(data.id)}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
                                         <option value="">— не выбрано —</option>
@@ -466,6 +551,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                     value={data.data.value || ''}
                                     readOnly={data.data.locked}
                                     onChange={(e) => !data.data.locked && updateNodeData(data.id, { value: e.target.value })}
+                                    onFocus={() => beginFieldEdit(data.id)}
+                                    onBlur={() => commitFieldEdit(data.id)}
                                     onMouseDown={(e) => e.stopPropagation()}
                                 />
                             );
@@ -485,6 +572,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                             value={data.data.file || ''}
                             readOnly={data.data.locked}
                             onChange={(e) => !data.data.locked && updateNodeData(data.id, { file: e.target.value })}
+                            onFocus={() => beginFieldEdit(data.id)}
+                            onBlur={() => commitFieldEdit(data.id)}
                             onMouseDown={(e) => e.stopPropagation()}
                             title="Path to function file (relative to public/)"
                         />
@@ -556,6 +645,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                     backgroundColor: isSelected || isCompatible || isHovered ? undefined : getPortColor(port.type)
                                 }}
                                 onClick={(e) => handlePortClick(e, port.id, type)}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: port.id, type })}
                                 onMouseLeave={() => setHoveredPort(null)}
                                 title={port.type.startsWith('ref:') ? `Bi-directional (${port.type})` : (isSelected ? 'Selected port (click again to cancel)' : (isCompatible ? 'Compatible port (click to connect)' : port.type))}
@@ -576,6 +666,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 className="w-16 h-5 bg-neutral-900 border border-neutral-700 rounded px-0.5 text-[10px] leading-none text-neutral-200 text-center focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
                                 value={data.data?.[port.id] ?? ''}
                                 onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                onFocus={() => beginFieldEdit(data.id)}
+                                onBlur={() => commitFieldEdit(data.id)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => e.stopPropagation()}
                                 title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
@@ -596,6 +688,8 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 placeholder="…"
                                 value={data.data?.[port.id] ?? ''}
                                 onChange={(e) => updateNodeData(data.id, { [port.id]: e.target.value })}
+                                onFocus={() => beginFieldEdit(data.id)}
+                                onBlur={() => commitFieldEdit(data.id)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => e.stopPropagation()}
                                 title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
@@ -640,7 +734,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                     )}
                                     <div
                                         className="flex-1 h-px"
-                                        style={{ backgroundColor: showValueInput ? getPortColor(port.type) : 'transparent' }}
+                                        style={{ backgroundColor: getPortColor(port.type) }}
                                     />
                                     {renderPortDot(port, type)}
                                     <span className="text-neutral-400 truncate ml-2">{port.name}</span>
@@ -740,6 +834,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 className="absolute left-0 top-0 bottom-0 w-4 -ml-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
                                 title={leftSelected ? 'Selected port (click again to cancel)' : (leftCompatible ? 'Compatible port (click to connect)' : 'Left (click to connect)')}
                                 onClick={(e) => handlePortClick(e, 'left', portType)}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'left', type: portType })}
                                 onMouseLeave={() => setHoveredPort(null)}
                             >
@@ -775,6 +870,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 className="absolute right-0 top-0 bottom-0 w-4 -mr-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
                                 title={rightSelected ? 'Selected port (click again to cancel)' : (rightCompatible ? 'Compatible port (click to connect)' : 'Right (click to connect)')}
                                 onClick={(e) => handlePortClick(e, 'right', portType)}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'right', type: portType })}
                                 onMouseLeave={() => setHoveredPort(null)}
                             >
@@ -810,6 +906,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 className="absolute top-0 left-0 right-0 h-4 -mt-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
                                 title={topSelected ? 'Selected port (click again to cancel)' : (topCompatible ? 'Compatible port (click to connect)' : 'Top (click to connect)')}
                                 onClick={(e) => handlePortClick(e, 'top', portType)}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'top', type: portType })}
                                 onMouseLeave={() => setHoveredPort(null)}
                             >
@@ -845,6 +942,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 className="absolute bottom-0 left-0 right-0 h-4 -mb-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
                                 title={bottomSelected ? 'Selected port (click again to cancel)' : (bottomCompatible ? 'Compatible port (click to connect)' : 'Bottom (click to connect)')}
                                 onClick={(e) => handlePortClick(e, 'bottom', portType)}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'bottom', type: portType })}
                                 onMouseLeave={() => setHoveredPort(null)}
                             >

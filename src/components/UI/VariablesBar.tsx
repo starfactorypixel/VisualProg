@@ -8,7 +8,13 @@ export const VariablesBar: React.FC = () => {
 
     const dataNodes = nodes.filter(n => n.type === 'data');
 
-    if (dataNodes.length === 0) return null;
+    if (dataNodes.length === 0) {
+        return (
+            <div className="h-full w-full bg-[#252526] flex items-center px-4 text-xs text-neutral-600 italic">
+                Нет переменных — перетащите тип данных из панели DATA на холст
+            </div>
+        );
+    }
 
     const groupedNodes = dataNodes.reduce((acc, node) => {
         const group = node.data?.group || 'Global';
@@ -36,7 +42,7 @@ export const VariablesBar: React.FC = () => {
     };
 
     return (
-        <div className="h-16 bg-[#252526] border-b border-neutral-700 flex items-start px-4 gap-4 overflow-x-auto text-xs shadow-sm z-40 py-1">
+        <div className="h-full w-full bg-[#252526] flex items-start px-4 gap-4 overflow-x-auto text-xs py-1">
 
             {Object.entries(groupedNodes).map(([group, nodes]) => (
                 <div

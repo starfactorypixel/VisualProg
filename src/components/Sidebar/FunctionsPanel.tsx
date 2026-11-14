@@ -1,5 +1,16 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import clsx from 'clsx';
+import defaultRegistry from '../../config/functions_registry.json';
+import { useEditorStore } from '../../store/useEditorStore';
+import {
+    isFileSystemAccessSupported, pickExistingJsonFile, createNewJsonFile,
+    queryHandlePermission, requestHandlePermission, readJsonFromHandle, writeJsonToHandle,
+    saveHandle, loadHandle, resolveRelativePath, getOrCreateFileInDirectory,
+} from '../../utils/fileSystemAccess';
+import { slugifyPinName, applyPinEdits } from '../../utils/functionSignature';
+import { PinDef, PinDirection, FunctionFileData } from '../../types/function';
+import { useProjectDirectory } from './useProjectDirectory';
+import { FunctionConstructor, PIN_DIRECTIONS } from './FunctionConstructor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -10,25 +21,30 @@ interface FunctionEntry {
     description: string;
 }
 
-// ─── Storage key ─────────────────────────────────────────────────────────────
+type EditablePin = { id?: string; name: string; dir: PinDirection; dataType: string };
+
+type DiskStatus = 'unsupported' | 'disconnected' | 'needs-permission' | 'connected';
+
+// ─── Storage ─────────────────────────────────────────────────────────────────
+// localStorage — мгновенный локальный кэш (чтобы список не мигал пустым при
+// загрузке и работал оффлайн). Настоящий файл на диске подключается через
+// File System Access API (см. src/utils/fileSystemAccess.ts) — без бэкенда и
+// без привязки к npm/dev-серверу: хендл выбранного файла хранится в
+// IndexedDB и переживает перезапуски браузера. Плюс универсальный
+// экспорт/импорт JSON-файла работает в любом браузере как запасной вариант.
 
 const STORAGE_KEY = 'fn_registry_v1';
+const HANDLE_KEY = 'functions_registry';
 
-const loadRegistry = (): FunctionEntry[] => {
+const loadLocalRegistry = (): FunctionEntry[] => {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) return JSON.parse(raw);
     } catch {}
-    // fallback — try to import static config
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const cfg = require('../../config/functions_registry.json');
-        return cfg.functions || [];
-    } catch {}
-    return [];
+    return (defaultRegistry as { functions: FunctionEntry[] }).functions || [];
 };
 
-const saveRegistry = (entries: FunctionEntry[]) => {
+const saveLocalRegistry = (entries: FunctionEntry[]) => {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     } catch {}
@@ -78,18 +94,130 @@ const IconX = () => (
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const FunctionsPanel: React.FC = () => {
-    const [entries, setEntries] = useState<FunctionEntry[]>(loadRegistry);
+    const [entries, setEntries] = useState<FunctionEntry[]>(loadLocalRegistry);
+    const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+    const [diskStatus, setDiskStatus] = useState<DiskStatus>(isFileSystemAccessSupported() ? 'disconnected' : 'unsupported');
     const [filter, setFilter] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editDraft, setEditDraft] = useState<Partial<FunctionEntry>>({});
+    const [editPins, setEditPins] = useState<EditablePin[]>([]);
+    const [editPinsLoading, setEditPinsLoading] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [newDraft, setNewDraft] = useState<Partial<FunctionEntry>>({});
+    const [isConstructing, setIsConstructing] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
+    const importInputRef = useRef<HTMLInputElement>(null);
+    const dataTypes = useEditorStore(s => s.dataTypes);
+    const {
+        dirHandle: projectDirHandle, status: projectDirStatus,
+        connect: connectProjectDir, reconnect: reconnectProjectDir,
+    } = useProjectDirectory();
+
+    const loadFromHandle = async (handle: FileSystemFileHandle) => {
+        const data = await readJsonFromHandle<{ functions: FunctionEntry[] }>(handle);
+        if (data?.functions) {
+            setEntries(data.functions);
+            saveLocalRegistry(data.functions);
+        }
+    };
+
+    // При монтировании пробуем восстановить ранее выбранный файл (хендл
+    // лежит в IndexedDB) — без бэкенда и без привязки к npm/dev-серверу.
+    // Браузер требует явный клик пользователя для повторной выдачи прав,
+    // поэтому если разрешение не 'granted' — просим переподключиться.
+    useEffect(() => {
+        if (!isFileSystemAccessSupported()) return;
+        (async () => {
+            const handle = await loadHandle(HANDLE_KEY);
+            if (!handle) return;
+            setFileHandle(handle);
+            const perm = await queryHandlePermission(handle);
+            if (perm === 'granted') {
+                setDiskStatus('connected');
+                await loadFromHandle(handle);
+            } else {
+                setDiskStatus('needs-permission');
+            }
+        })();
+    }, []);
 
     const persist = useCallback((next: FunctionEntry[]) => {
         setEntries(next);
-        saveRegistry(next);
-    }, []);
+        saveLocalRegistry(next);
+        if (fileHandle && diskStatus === 'connected') {
+            writeJsonToHandle(fileHandle, { functions: next }).then(ok => {
+                if (!ok) setDiskStatus('needs-permission');
+            });
+        }
+    }, [fileHandle, diskStatus]);
+
+    // ── Подключение файла на диске (File System Access API) ────────────────────
+
+    const connectExisting = async () => {
+        const handle = await pickExistingJsonFile();
+        if (!handle) return;
+        await saveHandle(HANDLE_KEY, handle);
+        setFileHandle(handle);
+        setDiskStatus('connected');
+        const data = await readJsonFromHandle<{ functions: FunctionEntry[] }>(handle);
+        if (data?.functions) {
+            setEntries(data.functions);
+            saveLocalRegistry(data.functions);
+        } else {
+            await writeJsonToHandle(handle, { functions: entries });
+        }
+    };
+
+    const connectNew = async () => {
+        const handle = await createNewJsonFile('functions_registry.json');
+        if (!handle) return;
+        await saveHandle(HANDLE_KEY, handle);
+        setFileHandle(handle);
+        setDiskStatus('connected');
+        await writeJsonToHandle(handle, { functions: entries });
+    };
+
+    const reconnect = async () => {
+        if (!fileHandle) return;
+        const perm = await requestHandlePermission(fileHandle);
+        if (perm === 'granted') {
+            setDiskStatus('connected');
+            await loadFromHandle(fileHandle);
+        }
+    };
+
+    // ── Экспорт/импорт JSON-файла — работает в любом браузере, без прав ────────
+
+    const handleExport = () => {
+        const blob = new Blob([JSON.stringify({ functions: entries }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'functions_registry.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target?.result as string);
+                if (!Array.isArray(data?.functions)) throw new Error('expected { functions: [] }');
+                if (confirm(`Заменить текущий список (${entries.length}) импортированным (${data.functions.length})?`)) {
+                    persist(data.functions);
+                }
+            } catch (err) {
+                alert('Не удалось прочитать файл: ' + (err as Error).message);
+            }
+        };
+        reader.readAsText(file);
+    };
 
     // ── Filtering ────────────────────────────────────────────────────────────
 
@@ -136,28 +264,121 @@ export const FunctionsPanel: React.FC = () => {
         setEditingId(entry.id);
         setEditDraft({ name: entry.name, description: entry.description, file: entry.file });
         setIsAdding(false);
+        setIsConstructing(false);
+        setEditError(null);
+
+        // Пины — не часть реестра, а часть самого файла функции, поэтому их
+        // приходится отдельно подтягивать с диска при открытии формы.
+        setEditPins([]);
+        setEditPinsLoading(true);
+        // no-store — иначе после более ранней правки пинов браузер может отдать
+        // закэшированный (ещё пустой) ответ, форма покажет "пинов нет", а
+        // commitEdit ниже воспримет это как намеренное удаление всех пинов.
+        fetch(`/${entry.file}`, { cache: 'no-store' })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                const pins: PinDef[] = data?.signature?.pins || [];
+                setEditPins(pins.map(p => ({ id: p.id, name: p.name, dir: p.dir, dataType: p.dataType })));
+            })
+            .catch(() => {})
+            .finally(() => setEditPinsLoading(false));
     };
 
-    const commitEdit = () => {
+    const addEditPin = () => {
+        setEditPins(prev => [...prev, { name: `Pin${prev.length + 1}`, dir: 'in', dataType: dataTypes[0]?.name || '' }]);
+    };
+    const updateEditPin = (i: number, patch: Partial<EditablePin>) => {
+        setEditPins(prev => prev.map((p, idx) => idx === i ? { ...p, ...patch } : p));
+    };
+    const removeEditPin = (i: number) => setEditPins(prev => prev.filter((_, idx) => idx !== i));
+
+    const commitEdit = async () => {
         if (!editingId) return;
-        persist(entries.map(e =>
-            e.id === editingId
-                ? { ...e, ...editDraft } as FunctionEntry
-                : e
-        ));
-        setEditingId(null);
-        setEditDraft({});
+        setEditError(null);
+
+        const currentEntry = entries.find(e => e.id === editingId);
+        if (!currentEntry) return;
+
+        const newFile = (editDraft.file || currentEntry.file).trim();
+        if (!newFile) { setEditError('Укажите путь к файлу'); return; }
+
+        const seenIds = new Set<string>();
+        const pinDefs: PinDef[] = editPins.map((p, i) => {
+            let id = p.id || slugifyPinName(p.name, i);
+            while (seenIds.has(id)) id = `${id}_${i}`;
+            seenIds.add(id);
+            return { id, name: p.name.trim() || `Pin ${i + 1}`, dir: p.dir, dataType: p.dataType };
+        });
+
+        setIsSavingEdit(true);
+        try {
+            // Подтягиваем актуальное тело файла — трогать нужно только
+            // пин-плейсхолдеры, а не то, что пользователь уже нарисовал внутри.
+            // Если файл не читается — прерываем сохранение, а не тихо пишем
+            // пустую заглушку поверх существующей логики функции.
+            let fileData: FunctionFileData;
+            try {
+                const res = await fetch(`/${currentEntry.file}`, { cache: 'no-store' });
+                if (!res.ok) { setEditError(`Не удалось прочитать ${currentEntry.file} перед сохранением — тело функции не тронуто`); return; }
+                fileData = await res.json();
+            } catch {
+                setEditError(`Не удалось прочитать ${currentEntry.file} перед сохранением — тело функции не тронуто`);
+                return;
+            }
+
+            const updatedFile = applyPinEdits(fileData, pinDefs);
+
+            let dirHandle = projectDirHandle;
+            if (projectDirStatus !== 'connected') {
+                if (projectDirStatus === 'needs-permission') {
+                    const ok = await reconnectProjectDir();
+                    if (!ok) { setEditError('Нет доступа к папке проекта — нажмите «Сохранить» ещё раз, чтобы переподключить'); return; }
+                } else {
+                    dirHandle = await connectProjectDir();
+                    if (!dirHandle) { setEditError('Нужно выбрать папку проекта, чтобы сохранить пины на диске'); return; }
+                }
+            }
+            if (!dirHandle) { setEditError('Нет доступа к папке проекта'); return; }
+
+            const fileHandle = await getOrCreateFileInDirectory(dirHandle, newFile);
+            if (!fileHandle) { setEditError('Не удалось открыть файл по этому пути'); return; }
+
+            const ok = await writeJsonToHandle(fileHandle, updatedFile);
+            if (!ok) { setEditError('Не удалось записать файл'); return; }
+
+            // Обновляем сигнатуру в сторе немедленно — иначе уже открытые ноды
+            // вызова этой функции показывали бы старые порты до перезагрузки
+            // страницы (store кэширует сигнатуру по пути файла, см. loadFunctionSignature).
+            useEditorStore.getState().setFunctionSignature(newFile, updatedFile.signature ?? null);
+            if (newFile !== currentEntry.file) {
+                useEditorStore.getState().setFunctionSignature(currentEntry.file, null);
+            }
+
+            persist(entries.map(e =>
+                e.id === editingId
+                    ? { ...e, ...editDraft, file: newFile } as FunctionEntry
+                    : e
+            ));
+            setEditingId(null);
+            setEditDraft({});
+            setEditPins([]);
+        } finally {
+            setIsSavingEdit(false);
+        }
     };
 
     const cancelEdit = () => {
         setEditingId(null);
         setEditDraft({});
+        setEditPins([]);
+        setEditError(null);
     };
 
     // ── Add ──────────────────────────────────────────────────────────────────
 
     const startAdd = () => {
         setIsAdding(true);
+        setIsConstructing(false);
         setNewDraft({ file: '', name: '', description: '' });
         setEditingId(null);
     };
@@ -178,6 +399,45 @@ export const FunctionsPanel: React.FC = () => {
     const cancelAdd = () => {
         setIsAdding(false);
         setNewDraft({});
+    };
+
+    // ── Конструктор функции ──────────────────────────────────────────────────
+
+    const startConstruct = () => {
+        setIsConstructing(true);
+        setIsAdding(false);
+        setEditingId(null);
+    };
+
+    const cancelConstruct = () => setIsConstructing(false);
+
+    const handleFunctionCreated = (entry: FunctionEntry) => {
+        persist([...entries, entry]);
+        setIsConstructing(false);
+    };
+
+    // ── Добавить готовую функцию с диска ─────────────────────────────────────
+
+    const handleAddFromDisk = async () => {
+        const handle = await pickExistingJsonFile();
+        if (!handle) return;
+        const data = await readJsonFromHandle<{ nodes?: unknown[]; connections?: unknown[] }>(handle);
+        if (!data?.nodes || !data?.connections) {
+            alert('Файл не похож на функцию — ожидается { nodes, connections }');
+            return;
+        }
+        // Путь, который сможет найти fetch-based "Открыть"/экспорт кода, можно
+        // вычислить только если файл лежит внутри уже подключённой папки
+        // проекта — иначе просто подставляем имя файла, как и при ручном вводе.
+        const resolvedPath = projectDirHandle ? await resolveRelativePath(projectDirHandle, handle) : null;
+        setIsAdding(true);
+        setIsConstructing(false);
+        setEditingId(null);
+        setNewDraft({
+            file: resolvedPath || handle.name,
+            name: handle.name.replace(/\.json$/i, ''),
+            description: '',
+        });
     };
 
     // ── Delete ───────────────────────────────────────────────────────────────
@@ -278,12 +538,66 @@ export const FunctionsPanel: React.FC = () => {
                                             placeholder="Описание функции..."
                                         />
                                     </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Пины</label>
+                                        {editPinsLoading && (
+                                            <p className="text-[10px] text-neutral-600 italic">Загрузка пинов…</p>
+                                        )}
+                                        {!editPinsLoading && editPins.map((pin, i) => (
+                                            <div key={pin.id ?? `new_${i}`} className="flex items-center gap-1">
+                                                <input
+                                                    className="flex-1 min-w-0 bg-neutral-900 border border-neutral-700 rounded px-1.5 py-1 text-[11px] text-neutral-200 focus:outline-none focus:border-purple-500"
+                                                    value={pin.name}
+                                                    onChange={e => updateEditPin(i, { name: e.target.value })}
+                                                    onMouseDown={e => e.stopPropagation()}
+                                                    placeholder="Имя"
+                                                />
+                                                <select
+                                                    className="bg-neutral-900 border border-neutral-700 rounded px-1 py-1 text-[11px] text-neutral-200 focus:outline-none focus:border-purple-500"
+                                                    value={pin.dir}
+                                                    onChange={e => updateEditPin(i, { dir: e.target.value as PinDirection })}
+                                                    onMouseDown={e => e.stopPropagation()}
+                                                >
+                                                    {PIN_DIRECTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                                                </select>
+                                                <select
+                                                    className="bg-neutral-900 border border-neutral-700 rounded px-1 py-1 text-[11px] text-neutral-200 focus:outline-none focus:border-purple-500 min-w-0"
+                                                    value={pin.dataType}
+                                                    onChange={e => updateEditPin(i, { dataType: e.target.value })}
+                                                    onMouseDown={e => e.stopPropagation()}
+                                                >
+                                                    {dataTypes.map(dt => <option key={dt.name} value={dt.name}>{dt.name}</option>)}
+                                                </select>
+                                                <button
+                                                    className="shrink-0 w-4 text-center text-neutral-500 hover:text-red-400 text-sm leading-none"
+                                                    onClick={() => removeEditPin(i)}
+                                                    onMouseDown={e => e.stopPropagation()}
+                                                    title="Удалить пин"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {!editPinsLoading && (
+                                            <button
+                                                className="w-full py-1 rounded border border-dashed border-neutral-700 hover:border-purple-500 text-neutral-500 hover:text-purple-400 text-[11px] transition-colors"
+                                                onClick={addEditPin}
+                                            >
+                                                + Добавить пин
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {editError && <p className="text-[10px] text-red-400">{editError}</p>}
+
                                     <div className="flex gap-1 pt-0.5">
                                         <button
-                                            className="flex items-center gap-1 px-2 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] transition-colors"
+                                            className="flex items-center gap-1 px-2 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             onClick={commitEdit}
+                                            disabled={isSavingEdit || editPinsLoading}
                                         >
-                                            <IconCheck /> Сохранить
+                                            <IconCheck /> {isSavingEdit ? 'Сохранение…' : 'Сохранить'}
                                         </button>
                                         <button
                                             className="flex items-center gap-1 px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-[11px] transition-colors"
@@ -336,7 +650,7 @@ export const FunctionsPanel: React.FC = () => {
                 {isAdding && (
                     <div className="rounded border border-purple-500/60 bg-neutral-800 p-2 space-y-1.5">
                         <p className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">
-                            Новая функция
+                            Добавить вручную
                         </p>
                         <div>
                             <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Файл *</label>
@@ -392,20 +706,109 @@ export const FunctionsPanel: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Конструктор функции — задать пины и сохранить новый файл */}
+                {isConstructing && (
+                    <FunctionConstructor onCreated={handleFunctionCreated} onCancel={cancelConstruct} />
+                )}
             </div>
 
-            {/* Footer: Add button + count */}
-            <div className="shrink-0 border-t border-neutral-800 px-2 py-2 flex items-center justify-between">
-                <span className="text-[10px] text-neutral-600">
-                    {entries.length} функц{entries.length === 1 ? 'ия' : entries.length < 5 ? 'ии' : 'ий'}
-                </span>
-                <button
-                    className="flex items-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
-                    onClick={startAdd}
-                    disabled={isAdding}
-                >
-                    <IconPlus /> Добавить
-                </button>
+            {/* Footer: disk status + export/import + add */}
+            <div className="shrink-0 border-t border-neutral-800 px-2 py-1.5 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-1">
+                    <span
+                        className="text-[10px] text-neutral-600 truncate"
+                        title={
+                            diskStatus === 'connected' ? `Сохраняется напрямую в файл: ${fileHandle?.name}`
+                            : diskStatus === 'needs-permission' ? 'Браузер сбросил доступ к файлу после перезапуска — нужно подтвердить ещё раз'
+                            : diskStatus === 'unsupported' ? 'Этот браузер не поддерживает прямую запись на диск — используйте Экспорт/Импорт'
+                            : 'Хранится только в этом браузере — подключите файл для сохранения на диске'
+                        }
+                    >
+                        {entries.length} функц{entries.length === 1 ? 'ия' : entries.length < 5 ? 'ии' : 'ий'}
+                        {' · '}
+                        <span className={clsx(
+                            diskStatus === 'connected' && 'text-green-600',
+                            diskStatus === 'needs-permission' && 'text-yellow-600',
+                            (diskStatus === 'disconnected' || diskStatus === 'unsupported') && 'text-neutral-600'
+                        )}>
+                            {diskStatus === 'connected' && `файл: ${fileHandle?.name}`}
+                            {diskStatus === 'needs-permission' && 'доступ сброшен'}
+                            {(diskStatus === 'disconnected' || diskStatus === 'unsupported') && 'только в браузере'}
+                        </span>
+                    </span>
+
+                    {diskStatus === 'disconnected' && (
+                        <div className="flex gap-1 shrink-0">
+                            <button
+                                className="px-1.5 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-400 text-[10px] transition-colors"
+                                onClick={connectExisting}
+                                title="Выбрать существующий JSON-файл на диске"
+                            >
+                                Подключить
+                            </button>
+                            <button
+                                className="px-1.5 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-400 text-[10px] transition-colors"
+                                onClick={connectNew}
+                                title="Создать новый JSON-файл на диске"
+                            >
+                                Создать
+                            </button>
+                        </div>
+                    )}
+                    {diskStatus === 'needs-permission' && (
+                        <button
+                            className="px-1.5 py-0.5 rounded bg-yellow-900/40 hover:bg-yellow-900/60 border border-yellow-700/50 text-yellow-400 text-[10px] transition-colors shrink-0"
+                            onClick={reconnect}
+                        >
+                            Переподключить
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <button
+                        className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-400 text-[10px] transition-colors"
+                        onClick={handleExport}
+                        title="Скачать текущий список как JSON-файл"
+                    >
+                        Экспорт
+                    </button>
+                    <button
+                        className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-400 text-[10px] transition-colors"
+                        onClick={() => importInputRef.current?.click()}
+                        title="Загрузить список из JSON-файла"
+                    >
+                        Импорт
+                    </button>
+                    <input ref={importInputRef} type="file" accept=".json" className="hidden" onChange={handleImportFile} />
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <button
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
+                        onClick={startAdd}
+                        disabled={isAdding}
+                        title="Зарегистрировать функцию по пути к файлу вручную"
+                    >
+                        <IconPlus /> Вручную
+                    </button>
+                    <button
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
+                        onClick={startConstruct}
+                        disabled={isConstructing}
+                        title="Задать пины (in/out/inout) и создать новый файл функции"
+                    >
+                        <IconPlus /> Конструктор
+                    </button>
+                    <button
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
+                        onClick={handleAddFromDisk}
+                        title="Выбрать уже существующий файл функции на диске"
+                    >
+                        <IconPlus /> С диска
+                    </button>
+                </div>
             </div>
         </div>
     );

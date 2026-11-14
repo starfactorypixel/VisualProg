@@ -26,7 +26,7 @@ export const Sidebar: React.FC = () => {
     ];
 
     return (
-        <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col flex-shrink-0 select-none">
+        <div className="w-full h-full bg-neutral-900 flex flex-col select-none">
 
             {/* Tab Bar */}
             <div className="flex border-b border-neutral-800 shrink-0">
@@ -83,7 +83,7 @@ export const Sidebar: React.FC = () => {
                     </div>
 
                     {/* List */}
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                    <div className="flex-1 overflow-y-auto py-1 px-2">
                         {(() => {
                             const query = cmdFilter.trim().toLowerCase();
                             const filtered = query
@@ -121,19 +121,17 @@ export const Sidebar: React.FC = () => {
                                 return (
                                     <div
                                         key={def.id}
-                                        className="px-3 py-2 bg-neutral-800 rounded border border-neutral-700 hover:border-blue-500 cursor-grab active:cursor-grabbing transition-colors"
+                                        className="flex items-center gap-2 py-0.5 px-1 rounded cursor-grab active:cursor-grabbing hover:bg-neutral-800 transition-colors"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, 'command', def.id)}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <div
-                                                className="w-2.5 h-2.5 rounded-full shrink-0"
-                                                style={{ backgroundColor: def.visual?.color || '#555' }}
-                                            />
-                                            <span className="font-medium text-xs text-neutral-200 truncate">
-                                                {renderName(def.name)}
-                                            </span>
-                                        </div>
+                                        <div
+                                            className="w-2 h-2 rounded-full shrink-0"
+                                            style={{ backgroundColor: def.visual?.color || '#555' }}
+                                        />
+                                        <span className="text-xs text-neutral-300 truncate">
+                                            {renderName(def.name)}
+                                        </span>
                                     </div>
                                 );
                             });
@@ -150,7 +148,7 @@ export const Sidebar: React.FC = () => {
                             Node Groups
                         </h2>
                         <p className="text-[10px] text-neutral-600 mt-0.5">
-                            Пошаговый выбор нод по параметрам
+                            Дерево команд по категориям
                         </p>
                     </div>
                     <div className="flex-1 overflow-y-auto">
@@ -167,7 +165,7 @@ export const Sidebar: React.FC = () => {
                             Data Types
                         </h2>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                    <div className="flex-1 overflow-y-auto py-1 px-2">
                         {dataTypes.map(dt => {
                             const isMatching = (() => {
                                 if (!linking) return false;
@@ -182,10 +180,10 @@ export const Sidebar: React.FC = () => {
                                 <div
                                     key={dt.name}
                                     className={clsx(
-                                        "px-3 py-2 bg-neutral-800 rounded border transition-all cursor-grab active:cursor-grabbing",
+                                        "flex items-center gap-2 py-0.5 px-1 rounded cursor-grab active:cursor-grabbing transition-all",
                                         isMatching
-                                            ? "border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)] ring-1 ring-green-500"
-                                            : "border-neutral-700 hover:border-green-500"
+                                            ? "bg-green-500/10 ring-1 ring-green-500"
+                                            : "hover:bg-neutral-800"
                                     )}
                                     draggable
                                     onDragStart={(e) => handleDragStart(e, 'data', dt.name)}
@@ -202,15 +200,13 @@ export const Sidebar: React.FC = () => {
                                         }
                                     }}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                                            style={{ backgroundColor: dt.color }}
-                                        />
-                                        <span className="font-medium text-xs text-neutral-200 capitalize">
-                                            {dt.name}
-                                        </span>
-                                    </div>
+                                    <div
+                                        className="w-2 h-2 rounded-full shrink-0"
+                                        style={{ backgroundColor: dt.color }}
+                                    />
+                                    <span className="text-xs text-neutral-300 capitalize truncate">
+                                        {dt.name}
+                                    </span>
                                 </div>
                             );
                         })}

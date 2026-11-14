@@ -3,6 +3,8 @@ import { Canvas } from './components/Canvas/Canvas';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { TopMenu } from './components/UI/TopMenu';
 import { VariablesBar } from './components/UI/VariablesBar';
+import { DockablePanel, DockZoneOverlay } from './components/UI/DockablePanel';
+import { DockSide, usePanelLayoutStore } from './store/usePanelLayoutStore';
 import { useEditorStore } from './store/useEditorStore';
 import { genId } from './utils/id';
 
@@ -10,6 +12,9 @@ function App() {
     const { addNode, scale, pan, setData, loadTemplate, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
     const canvasWrapperRef = useRef<HTMLDivElement>(null);
     const lastRightClickPos = useRef<{ x: number; y: number } | null>(null);
+
+    const sidebarDock = usePanelLayoutStore(s => s.panels['sidebar']?.dock ?? 'left');
+    const variablesDock = usePanelLayoutStore(s => s.panels['variablesBar']?.dock ?? 'top');
 
     // Disable browser context menu on canvas
     useEffect(() => {
@@ -46,11 +51,16 @@ function App() {
 
             const isCtrlOrMeta = e.ctrlKey || e.metaKey;
 
-            if (isCtrlOrMeta && e.key.toLowerCase() === 'z') {
+            // e.code — это физическая клавиша (её положение на клавиатуре),
+            // в отличие от e.key, который зависит от текущей раскладки. При
+            // не-латинской раскладке (например русской) физическая "Z" отдаёт
+            // в e.key совсем другой символ ('я' в ЙЦУКЕН), и сравнение с 'z'
+            // просто никогда не срабатывает — отсюда и неработающие хоткеи.
+            if (isCtrlOrMeta && e.code === 'KeyZ') {
                 e.preventDefault();
                 undo();
             }
-            else if (isCtrlOrMeta && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+            else if (isCtrlOrMeta && (e.code === 'KeyY' || (e.shiftKey && e.code === 'KeyZ'))) {
                 e.preventDefault();
                 redo();
             }
@@ -58,15 +68,15 @@ function App() {
                 e.preventDefault();
                 removeSelectedNodes();
             }
-            else if (isCtrlOrMeta && e.key.toLowerCase() === 'c') {
+            else if (isCtrlOrMeta && e.code === 'KeyC') {
                 e.preventDefault();
                 copySelectedNodes();
             }
-            else if (isCtrlOrMeta && e.key.toLowerCase() === 'd') {
+            else if (isCtrlOrMeta && e.code === 'KeyD') {
                 e.preventDefault();
                 duplicateSelectedNodes();
             }
-            else if (isCtrlOrMeta && e.key.toLowerCase() === 'v') {
+            else if (isCtrlOrMeta && e.code === 'KeyV') {
                 e.preventDefault();
                 const pastePos = lastRightClickPos.current || {
                     x: (-pan.x + window.innerWidth / 2) / scale,
@@ -101,14 +111,17 @@ function App() {
 
         if (fileParam) {
             console.log('Loading file from URL:', fileParam);
-            fetch(fileParam)
+            // no-store — файл функции может быть только что переписан напрямую
+            // на диске (File System Access, мимо HTTP), и закэшированный ответ
+            // открыл бы устаревшую версию без недавно добавленных пинов.
+            fetch(fileParam, { cache: 'no-store' })
                 .then(res => {
                     if (!res.ok) throw new Error('File not found');
                     return res.json();
                 })
                 .then(data => {
                     if (data.nodes && data.connections) {
-                        setData(data);
+                        setData(data, data.signature, fileParam);
                     } else {
                         console.error('Invalid file format');
                         alert('Invalid file format loaded from URL');
@@ -161,23 +174,68 @@ function App() {
         e.dataTransfer.dropEffect = 'move';
     };
 
+    const sidebarPanel = (
+        <DockablePanel
+            key="sidebar"
+            id="sidebar"
+            title="Команды"
+            defaultDock="left"
+            defaultSize={256}
+            defaultFloatSize={{ width: 288, height: 520 }}
+            minSize={220}
+            maxSize={480}
+        >
+            <Sidebar />
+        </DockablePanel>
+    );
+
+    const variablesPanel = (
+        <DockablePanel
+            key="variablesBar"
+            id="variablesBar"
+            title="Переменные"
+            defaultDock="top"
+            defaultSize={64}
+            defaultFloatSize={{ width: 560, height: 180 }}
+            defaultFloatPos={{ x: 160, y: 120 }}
+            minSize={48}
+            maxSize={400}
+        >
+            <VariablesBar />
+        </DockablePanel>
+    );
+
+    const groups: Record<Exclude<DockSide, 'float'>, React.ReactNode[]> = { top: [], bottom: [], left: [], right: [] };
+    if (sidebarDock !== 'float') groups[sidebarDock].push(sidebarPanel);
+    if (variablesDock !== 'float') groups[variablesDock].push(variablesPanel);
+
     return (
         <div className="w-screen h-screen flex flex-col bg-background text-foreground">
             <TopMenu />
-            <VariablesBar />
+
+            {groups.top.length > 0 && <div className="flex flex-row shrink-0">{groups.top}</div>}
 
             <div className="flex-1 flex overflow-hidden">
-                <Sidebar />
+                {groups.left.length > 0 && <div className="flex flex-col shrink-0">{groups.left}</div>}
 
                 <div
                     ref={canvasWrapperRef}
-                    className="flex-1 relative"
+                    className="flex-1 relative min-w-0"
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                 >
                     <Canvas />
                 </div>
+
+                {groups.right.length > 0 && <div className="flex flex-col shrink-0">{groups.right}</div>}
             </div>
+
+            {groups.bottom.length > 0 && <div className="flex flex-row shrink-0">{groups.bottom}</div>}
+
+            {sidebarDock === 'float' && sidebarPanel}
+            {variablesDock === 'float' && variablesPanel}
+
+            <DockZoneOverlay />
         </div>
     );
 }

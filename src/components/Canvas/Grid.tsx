@@ -1,10 +1,11 @@
 import React from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
+import { shallow } from 'zustand/shallow';
 
 const GRID_SIZE = 20;
 
 export const Grid: React.FC = () => {
-    const { scale, pan } = useEditorStore();
+    const { scale, pan } = useEditorStore((state) => ({ scale: state.scale, pan: state.pan }), shallow);
 
     // Calculate grid coverage based on viewport (simplified for now)
     // We'll trust CSS translate to handle the visual movement, 

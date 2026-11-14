@@ -41,18 +41,6 @@
       "data": {}
     },
     {
-      "id": "0d68d292-9b1d-460e-87b6-d9f56e42427e",
-      "definitionId": "register",
-      "type": "data",
-      "position": {
-        "x": 445,
-        "y": 100
-      },
-      "data": {
-        "value": "0x08"
-      }
-    },
-    {
       "id": "fe272273-fe1a-46d7-bc84-3fad6e72abe3",
       "definitionId": "number",
       "type": "data",
@@ -89,18 +77,6 @@
       }
     },
     {
-      "id": "25089fde-d271-451e-8d2f-3f97ee0c9ec5",
-      "definitionId": "register",
-      "type": "data",
-      "position": {
-        "x": 1145,
-        "y": 100
-      },
-      "data": {
-        "value": "0x09"
-      }
-    },
-    {
       "id": "a48a519f-2f40-4212-bab2-85167ab44895",
       "definitionId": "cmd_End",
       "type": "command",
@@ -131,6 +107,38 @@
       "data": {
         "value": "Определение типа переключения"
       }
+    },
+    {
+      "id": "310jb2apg",
+      "definitionId": "register",
+      "type": "data",
+      "position": {
+        "x": 445,
+        "y": 100
+      },
+      "data": {
+        "isPin": true,
+        "pinId": "val",
+        "pinDir": "in",
+        "label": "Val",
+        "value": "0x08"
+      }
+    },
+    {
+      "id": "93a59axpo",
+      "definitionId": "register",
+      "type": "data",
+      "position": {
+        "x": 1145,
+        "y": 196
+      },
+      "data": {
+        "isPin": true,
+        "pinId": "out",
+        "pinDir": "out",
+        "label": "Out",
+        "value": "0x09"
+      }
     }
   ],
   "connections": [
@@ -140,13 +148,6 @@
       "fromPortId": "bottom",
       "toNodeId": "d628853c-70fa-406e-9358-5af2436a139a",
       "toPortId": "op1"
-    },
-    {
-      "id": "km1r6ys5e",
-      "fromNodeId": "d628853c-70fa-406e-9358-5af2436a139a",
-      "fromPortId": "res",
-      "toNodeId": "25089fde-d271-451e-8d2f-3f97ee0c9ec5",
-      "toPortId": "bottom"
     },
     {
       "id": "qc5bulva9",
@@ -184,25 +185,11 @@
       "toPortId": "op2"
     },
     {
-      "id": "7o6layzzi",
-      "fromNodeId": "0d68d292-9b1d-460e-87b6-d9f56e42427e",
-      "fromPortId": "right",
-      "toNodeId": "fab1541c-8e3e-4aba-8aeb-e3ff0996378a",
-      "toPortId": "op1"
-    },
-    {
       "id": "jx24klj1q",
       "fromNodeId": "05499889-78ed-4317-ae59-d4b3569121b5",
       "fromPortId": "bottom",
       "toNodeId": "b79523b9-d500-4d76-b2e2-a68583128fd8",
       "toPortId": "op1"
-    },
-    {
-      "id": "2inhrlkr4",
-      "fromNodeId": "b79523b9-d500-4d76-b2e2-a68583128fd8",
-      "fromPortId": "res",
-      "toNodeId": "25089fde-d271-451e-8d2f-3f97ee0c9ec5",
-      "toPortId": "bottom"
     },
     {
       "id": "38pptmh5v",
@@ -217,6 +204,43 @@
       "fromPortId": "exec_out",
       "toNodeId": "a48a519f-2f40-4212-bab2-85167ab44895",
       "toPortId": "exec_in"
+    },
+    {
+      "id": "t6a9rzehu",
+      "fromNodeId": "310jb2apg",
+      "fromPortId": "right",
+      "toNodeId": "fab1541c-8e3e-4aba-8aeb-e3ff0996378a",
+      "toPortId": "op1"
+    },
+    {
+      "id": "ff6d6t6xo",
+      "fromNodeId": "b79523b9-d500-4d76-b2e2-a68583128fd8",
+      "fromPortId": "res",
+      "toNodeId": "93a59axpo",
+      "toPortId": "bottom"
+    },
+    {
+      "id": "u1r8kiws2",
+      "fromNodeId": "d628853c-70fa-406e-9358-5af2436a139a",
+      "fromPortId": "res",
+      "toNodeId": "93a59axpo",
+      "toPortId": "bottom"
     }
-  ]
+  ],
+  "signature": {
+    "pins": [
+      {
+        "id": "val",
+        "name": "Val",
+        "dir": "in",
+        "dataType": "register"
+      },
+      {
+        "id": "out",
+        "name": "Out",
+        "dir": "out",
+        "dataType": "register"
+      }
+    ]
+  }
 }

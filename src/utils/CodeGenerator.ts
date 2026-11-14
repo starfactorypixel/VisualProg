@@ -1,5 +1,7 @@
 import { NodeInstance, Connection } from '../types';
+import { FunctionSignature } from '../types/function';
 import { RawTemplate, compileEmission } from './TemplateSchema';
+import { pinPortId } from './functionSignature';
 
 // Легаси-вход: файл, где nodes/weights уже готовы (руками написанные старые
 // шаблоны). Основной путь — RawTemplate из TemplateSchema.ts (единый файл
@@ -26,7 +28,7 @@ export class CodeGenerator {
     private connections: Connection[];
     private config: CompiledConfig;
     private nodeAddresses: Map<string, number> = new Map();
-    private fileCache: Map<string, { nodes: NodeInstance[], connections: Connection[] }> = new Map();
+    private fileCache: Map<string, { nodes: NodeInstance[], connections: Connection[], signature?: FunctionSignature }> = new Map();
     private loadingFiles: Set<string> = new Set();
     private warnings: Set<string> = new Set();
 
@@ -42,7 +44,7 @@ export class CodeGenerator {
         }
     }
 
-    private async loadExternalFile(filePath: string): Promise<{ nodes: NodeInstance[], connections: Connection[] } | null> {
+    private async loadExternalFile(filePath: string): Promise<{ nodes: NodeInstance[], connections: Connection[], signature?: FunctionSignature } | null> {
         if (this.fileCache.has(filePath)) {
             return this.fileCache.get(filePath)!;
         }
@@ -52,14 +54,14 @@ export class CodeGenerator {
         }
         this.loadingFiles.add(filePath);
         try {
-            const response = await fetch(`/${filePath}`);
+            const response = await fetch(`/${filePath}`, { cache: 'no-store' });
             if (!response.ok) {
                 console.error(`[CodeGenerator] Failed to load ${filePath}: ${response.statusText}`);
                 this.loadingFiles.delete(filePath);
                 return null;
             }
             const data = await response.json();
-            const result = { nodes: data.nodes || [], connections: data.connections || [] };
+            const result = { nodes: data.nodes || [], connections: data.connections || [], signature: data.signature as FunctionSignature | undefined };
             this.fileCache.set(filePath, result);
             this.loadingFiles.delete(filePath);
             return result;
@@ -141,13 +143,55 @@ export class CodeGenerator {
                 fromPortId: 'exec_out'
             }));
 
+            // Пины сигнатуры — то же самое "вход/выход команды", что и у любой
+            // другой ноды: in/inout подставляют литерал в плейсхолдер внутри тела
+            // (как обычный unconnected-port инлайн-фоллбэк), out перенаправляет
+            // исходящие провода с ноды вызова на плейсхолдер — тот же приём, что
+            // и patchedIncoming/patchedOutgoing для exec-проводов выше.
+            const patchedPins: Connection[] = [];
+            for (const pin of externalData.signature?.pins ?? []) {
+                const portId = pinPortId(pin.id);
+                const placeholder = bodyNodes.find(n => n.data?.isPin && n.data?.pinId === pin.id);
+                if (!placeholder) continue;
+
+                if (pin.dir === 'in' || pin.dir === 'inout') {
+                    const inConn = this.connections.find(c => c.toNodeId === funcNode.id && c.toPortId === portId);
+                    let literal: string | undefined;
+                    if (inConn) {
+                        const src = this.nodes.find(n => n.id === inConn.fromNodeId);
+                        if (src?.type === 'data') {
+                            literal = src.data?.value || src.data?.label;
+                        } else if (src) {
+                            // Источник — выход другой команды, а не переменная: на
+                            // этапе inlining у неё ещё нет известного значения
+                            // (та же изначальная граница системы, что и у любого
+                            // обычного порта — см. resolveValue/processNode).
+                            this.warnings.add(`${funcNode.data?.label || filePath}: вход "${pin.name}" подключён не к переменной — используется значение по умолчанию функции`);
+                        }
+                    } else {
+                        const inline = funcNode.data?.[portId];
+                        if (inline !== undefined && inline !== '') literal = inline;
+                    }
+                    if (literal !== undefined) {
+                        placeholder.data = { ...placeholder.data, value: literal };
+                    }
+                }
+
+                if (pin.dir === 'out') {
+                    const outConns = this.connections.filter(c => c.fromNodeId === funcNode.id && c.fromPortId === portId);
+                    for (const c of outConns) {
+                        patchedPins.push({ ...c, id: `${c.id}_patched`, fromNodeId: placeholder.id, fromPortId: 'right' });
+                    }
+                }
+            }
+
             this.nodes = this.nodes.filter(n => n.id !== funcNode.id);
             this.connections = this.connections.filter(
                 c => c.fromNodeId !== funcNode.id && c.toNodeId !== funcNode.id
             );
 
             this.nodes.push(...bodyNodes);
-            this.connections.push(...bodyConns, ...patchedIncoming, ...patchedOutgoing);
+            this.connections.push(...bodyConns, ...patchedIncoming, ...patchedOutgoing, ...patchedPins);
         }
     }
 

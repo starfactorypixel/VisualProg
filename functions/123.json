@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "w8k63tes1",
+      "definitionId": "cmd_FunctionStart",
+      "type": "command",
+      "position": {
+        "x": 320,
+        "y": 40
+      },
+      "data": {}
+    },
+    {
+      "id": "dsvgz2ms0",
+      "definitionId": "cmd_End",
+      "type": "command",
+      "position": {
+        "x": 320,
+        "y": 400
+      },
+      "data": {}
+    },
+    {
+      "id": "t83o6wdap",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 40,
+        "y": 140
+      },
+      "data": {
+        "isPin": true,
+        "pinId": "pin1",
+        "pinDir": "in",
+        "label": "Pin1",
+        "value": ""
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "wogekv1c5",
+      "fromNodeId": "w8k63tes1",
+      "fromPortId": "exec_out",
+      "toNodeId": "dsvgz2ms0",
+      "toPortId": "exec_in"
+    }
+  ],
+  "signature": {
+    "pins": [
+      {
+        "id": "pin1",
+        "name": "Pin1",
+        "dir": "in",
+        "dataType": "number"
+      }
+    ]
+  }
+}

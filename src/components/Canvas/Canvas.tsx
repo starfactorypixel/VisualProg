@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
+import { shallow } from 'zustand/shallow';
 import { Grid } from './Grid';
 import { MagneticGrid } from './MagneticGrid';
 import { Node } from './Node';
@@ -10,6 +11,9 @@ import { BridgePicker } from '../UI/BridgePicker';
 
 export const Canvas: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
+    // Селектор+shallow — иначе Canvas (и, через него, список нод/связей)
+    // перерисовывается на любое изменение стора, включая draggingState,
+    // который во время драга в магнитном режиме меняется на каждый тик.
     const {
         nodes,
         pan,
@@ -23,7 +27,20 @@ export const Canvas: React.FC = () => {
         selectedNodeIds,
         clipboard,
         magneticGridMode
-    } = useEditorStore();
+    } = useEditorStore((state) => ({
+        nodes: state.nodes,
+        pan: state.pan,
+        scale: state.scale,
+        setPan: state.setPan,
+        setScale: state.setScale,
+        selectedPort: state.selectedPort,
+        removeNode: state.removeNode,
+        removeConnection: state.removeConnection,
+        removeSelectedNodes: state.removeSelectedNodes,
+        selectedNodeIds: state.selectedNodeIds,
+        clipboard: state.clipboard,
+        magneticGridMode: state.magneticGridMode,
+    }), shallow);
 
     const [isPanning, setIsPanning] = useState(false);
     const panningStartPos = useRef({ x: 0, y: 0 });
@@ -32,6 +49,15 @@ export const Canvas: React.FC = () => {
     const [emptySpaceMenu, setEmptySpaceMenu] = useState<{ x: number, y: number } | null>(null);
 
     const [selectionBox, setSelectionBox] = useState<{ start: Position; current: Position } | null>(null);
+    // Всегда актуальное значение для обработчиков ниже — без этого пришлось бы
+    // держать сам selectionBox в зависимостях эффекта, а он меняется на каждый
+    // mousemove во время протяжки рамки. Эффект тогда пересоздавал window-слушатели
+    // на каждый тик, и в промежутке между снятием старых и навеской новых изредка
+    // проскакивал настоящий mouseup мимо обработчика — рамка выделения оставалась
+    // "залипшей" навсегда, хотя кнопка мыши уже отпущена.
+    const selectionBoxRef = useRef<{ start: Position; current: Position } | null>(null);
+    selectionBoxRef.current = selectionBox;
+    const isSelecting = selectionBox !== null;
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 1) {
@@ -85,7 +111,7 @@ export const Canvas: React.FC = () => {
                 });
             }
 
-            if (selectionBox) {
+            if (selectionBoxRef.current) {
                 const rect = containerRef.current?.getBoundingClientRect();
                 if (rect) {
                     const x = e.clientX - rect.left;
@@ -98,12 +124,13 @@ export const Canvas: React.FC = () => {
         const handleWindowMouseUp = () => {
             if (isPanning) setIsPanning(false);
 
-            if (selectionBox) {
-                const { start, current } = selectionBox;
-                const x1 = (Math.min(start.x, current.x) - pan.x) / scale;
-                const y1 = (Math.min(start.y, current.y) - pan.y) / scale;
-                const x2 = (Math.max(start.x, current.x) - pan.x) / scale;
-                const y2 = (Math.max(start.y, current.y) - pan.y) / scale;
+            if (selectionBoxRef.current) {
+                const { start, current } = selectionBoxRef.current;
+                const { pan: curPan, scale: curScale } = useEditorStore.getState();
+                const x1 = (Math.min(start.x, current.x) - curPan.x) / curScale;
+                const y1 = (Math.min(start.y, current.y) - curPan.y) / curScale;
+                const x2 = (Math.max(start.x, current.x) - curPan.x) / curScale;
+                const y2 = (Math.max(start.y, current.y) - curPan.y) / curScale;
 
                 if (Math.abs(start.x - current.x) > 5 || Math.abs(start.y - current.y) > 5) {
                     useEditorStore.getState().selectNodesInRect({ x1, y1, x2, y2 });
@@ -112,7 +139,7 @@ export const Canvas: React.FC = () => {
             }
         };
 
-        if (isPanning || selectionBox) {
+        if (isPanning || isSelecting) {
             window.addEventListener('mousemove', handleWindowMouseMove);
             window.addEventListener('mouseup', handleWindowMouseUp);
         }
@@ -121,14 +148,26 @@ export const Canvas: React.FC = () => {
             window.removeEventListener('mousemove', handleWindowMouseMove);
             window.removeEventListener('mouseup', handleWindowMouseUp);
         };
-    }, [isPanning, selectionBox, setPan, pan, scale]);
+    }, [isPanning, isSelecting, setPan]);
 
-    const handleContextMenu = (e: React.MouseEvent, type: 'node' | 'connection', id: string) => {
+    // useCallback с пустыми deps — setEmptySpaceMenu/setContextMenu стабильны по
+    // контракту useState, так что эта функция не меняет идентичность НИКОГДА.
+    const handleContextMenu = useCallback((e: React.MouseEvent, type: 'node' | 'connection', id: string) => {
         e.preventDefault();
         e.stopPropagation();
         setEmptySpaceMenu(null);  // Close empty space menu
         setContextMenu({ x: e.clientX, y: e.clientY, type, id });
-    };
+    }, []);
+
+    // Раньше в nodes.map(...) передавался инлайн-колбэк (e) => handleContextMenu(e, 'node', node.id) —
+    // новая функция на КАЖДЫЙ рендер Canvas (а он перерисовывается на каждый тик
+    // панорамирования/зума). React.memo на Node сравнивает onContextMenu по ссылке —
+    // новая ссылка каждый раз полностью отключала memo и заставляла ВСЕ ноды на
+    // канвасе перерисовываться при любом движении, независимо от того, сколько их
+    // реально видно на экране. Стабильная ссылка здесь чинит memo для всего списка.
+    const handleNodeContextMenu = useCallback((e: React.MouseEvent, nodeId: string) => {
+        handleContextMenu(e, 'node', nodeId);
+    }, [handleContextMenu]);
 
     const handleCanvasContextMenu = (e: React.MouseEvent) => {
         // This handles right-click on empty space (event bubbles up)
@@ -160,10 +199,12 @@ export const Canvas: React.FC = () => {
                         const newPanX = mouseX - worldX * newScale;
                         const newPanY = mouseY - worldY * newScale;
 
-                        setPan({ x: newPanX, y: newPanY });
+                        // Один setState вместо setPan()+setScale() — вдвое меньше уведомлений
+                        // подписчикам стора на каждый тик колеса мыши.
+                        useEditorStore.setState({ pan: { x: newPanX, y: newPanY }, scale: newScale });
+                    } else {
+                        setScale(newScale);
                     }
-
-                    setScale(newScale);
                 }}
                 onContextMenu={handleCanvasContextMenu}
             >
@@ -200,7 +241,7 @@ export const Canvas: React.FC = () => {
                         <Node
                             key={node.id}
                             data={node}
-                            onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, 'node', node.id)}
+                            onContextMenu={handleNodeContextMenu}
                         />
                     ))}
                 </div>
@@ -217,7 +258,10 @@ export const Canvas: React.FC = () => {
                             action: () => {
                                 const group = prompt('Enter Group Name (e.g. Player, Game):', 'Global');
                                 if (group !== null) {
-                                    useEditorStore.getState().updateNodeData(contextMenu.id, { group: group || 'Global' });
+                                    const store = useEditorStore.getState();
+                                    store.beginFieldEdit(contextMenu.id);
+                                    store.updateNodeData(contextMenu.id, { group: group || 'Global' });
+                                    store.commitFieldEdit(contextMenu.id);
                                 }
                             }
                         },
