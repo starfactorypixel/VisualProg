@@ -1,0 +1,94 @@
+{
+  "nodes": [
+    {
+      "id": "ww6spsv44",
+      "definitionId": "cmd_Run",
+      "type": "command",
+      "position": {
+        "x": 1325,
+        "y": 292
+      },
+      "data": {
+        "op1": "0x0024"
+      }
+    },
+    {
+      "id": "qfkxztph6",
+      "definitionId": "cmd_ScriptInit",
+      "type": "command",
+      "position": {
+        "x": 275,
+        "y": 292
+      },
+      "data": {}
+    },
+    {
+      "id": "6bl3x5b69",
+      "definitionId": "cmd_TriggerParseReg",
+      "type": "command",
+      "position": {
+        "x": 625,
+        "y": 292
+      },
+      "data": {
+        "op1": "0x01",
+        "op2": "0",
+        "res": "0x06",
+        "label": "Parsing (FID)"
+      }
+    },
+    {
+      "id": "nqps6oxga",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 975,
+        "y": 292
+      },
+      "data": {
+        "op1": "0x06",
+        "op2": "0x65"
+      }
+    },
+    {
+      "id": "5akyqzfs0",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 1325,
+        "y": 487
+      },
+      "data": {}
+    }
+  ],
+  "connections": [
+    {
+      "id": "404y0dgvs",
+      "fromNodeId": "qfkxztph6",
+      "fromPortId": "exec_out",
+      "toNodeId": "6bl3x5b69",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "gkozeoysj",
+      "fromNodeId": "6bl3x5b69",
+      "fromPortId": "exec_out",
+      "toNodeId": "nqps6oxga",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "meufws6zr",
+      "fromNodeId": "nqps6oxga",
+      "fromPortId": "exec_true",
+      "toNodeId": "ww6spsv44",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "4x3lerewg",
+      "fromNodeId": "nqps6oxga",
+      "fromPortId": "exec_false",
+      "toNodeId": "5akyqzfs0",
+      "toPortId": "exec_in"
+    }
+  ]
+}

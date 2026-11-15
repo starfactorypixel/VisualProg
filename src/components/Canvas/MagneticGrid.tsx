@@ -8,7 +8,6 @@ interface StaticGridProps {
     displayRows: GridRow[];
     showCommandMagnets: boolean;
     showDataMagnets: boolean;
-    draggingPortCount: number;
     isMagnetic: boolean;
 }
 
@@ -20,7 +19,7 @@ interface StaticGridProps {
 // стабильны на протяжении всего перетаскивания, поэтому React.memo гасит
 // перерисовку на подавляющем большинстве тиков.
 const StaticMagneticGrid = React.memo<StaticGridProps>(({
-    pan, scale, config, displayRows, showCommandMagnets, showDataMagnets, draggingPortCount, isMagnetic
+    pan, scale, config, displayRows, showCommandMagnets, showDataMagnets, isMagnetic
 }) => {
     const { commandColumnSpacing, dataColumnOffset, magnetRadius } = config;
 
@@ -66,10 +65,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
 
             {/* Горизонтальные линии команд (адаптивные) */}
             {displayRows.map((row) => {
-                const effectiveMaxDataPorts = Math.max(row.maxDataPorts, draggingPortCount);
-                const extraPorts = effectiveMaxDataPorts - row.maxDataPorts;
-                const intersectionY = row.y + effectiveMaxDataPorts * dataUnitHeight;
-                const previewRowHeight = row.rowHeight + extraPorts * dataUnitHeight;
+                const intersectionY = row.y + row.maxDataPorts * dataUnitHeight;
 
                 return (
                     <g key={`row-group-${row.index}`}>
@@ -77,7 +73,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                             x={startX}
                             y={row.y}
                             width={endX - startX}
-                            height={previewRowHeight}
+                            height={row.rowHeight}
                             fill="rgba(156, 163, 175, 0.03)"
                             stroke="rgba(156, 163, 175, 0.2)"
                             strokeWidth={1}
@@ -96,7 +92,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                                 fontSize="10"
                                 fontFamily="monospace"
                             >
-                                Row {row.index} (ports: {row.maxDataPorts}{extraPorts > 0 ? ` → ${effectiveMaxDataPorts}` : ''})
+                                Row {row.index} (ports: {row.maxDataPorts})
                             </text>
 
                             {commandColumns.map((x, colIdx) => (
@@ -123,15 +119,14 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                                 </g>
                             ))}
 
-                            {Array.from({ length: effectiveMaxDataPorts }).map((_, dataRowIdx) => {
+                            {Array.from({ length: row.maxDataPorts }).map((_, dataRowIdx) => {
                                 const dataY = intersectionY - (dataRowIdx + 1) * dataUnitHeight;
-                                const isPreviewSlot = dataRowIdx >= row.maxDataPorts;
 
                                 return (
                                     <g key={`data-row-${row.index}-${dataRowIdx}`}>
                                         <line
                                             x1={startX} y1={dataY} x2={endX} y2={dataY}
-                                            stroke={isPreviewSlot ? "rgba(59, 130, 246, 0.35)" : "rgba(34, 197, 94, 0.2)"}
+                                            stroke="rgba(34, 197, 94, 0.2)"
                                             strokeWidth={1}
                                             strokeDasharray="3,3"
                                         />
@@ -150,10 +145,9 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                                                 <circle
                                                     cx={x} cy={dataY}
                                                     r={3}
-                                                    fill={isPreviewSlot ? "rgba(59, 130, 246, 0.6)" : "rgba(34, 197, 94, 0.5)"}
+                                                    fill="rgba(34, 197, 94, 0.5)"
                                                     stroke="white"
                                                     strokeWidth={0.5}
-                                                    strokeDasharray={isPreviewSlot ? "2,1" : undefined}
                                                 />
                                             </g>
                                         ))}
@@ -179,15 +173,14 @@ export const MagneticGrid: React.FC = () => {
     const draggingType = draggingState?.nodeType;
     const showCommandMagnets = draggingType === 'command';
     const showDataMagnets = draggingType === 'data';
-    // Сколько data-портов у переносимой command-ноды — используется, чтобы точка
-    // и линия ряда сразу показывали место, которое реально резервируется под неё
-    const draggingPortCount = showCommandMagnets ? (draggingState?.dataPortCount ?? 0) : 0;
-    // Пока тащим command-ноду — рисуем сетку так, будто она уже покинула свой исходный
-    // ряд (иначе исходный ряд визуально остаётся старого, "растянутого из-за неё" размера,
-    // хотя после drop он схлопнется и всё ниже сдвинется)
-    const displayRows = (showCommandMagnets && draggingState?.previewGridRows)
-        ? draggingState.previewGridRows
-        : gridRows;
+    // Сетка во время драга полностью заморожена — ни положение рядов, ни их высота,
+    // ни точка примагничивания не пересчитываются с учётом переносимой ноды, пока
+    // её не отпустили. Поэтому и findNearestGridPoint (см. стор) тоже считает точку
+    // по исходной, не "раздутой" под будущие порты ноды сетке — иначе точка на экране
+    // и реальная точка срабатывания магнита разъезжались бы. Пересчёт (со сдвигом
+    // рядов и их высоты под новые порты) происходит одним шагом в recalculateGrid()
+    // после отпускания (см. Node.tsx handleWinMouseUp).
+    const displayRows = gridRows;
     const isMagnetic = !!draggingState?.isMagnetic;
 
     return (
@@ -209,7 +202,6 @@ export const MagneticGrid: React.FC = () => {
                     displayRows={displayRows}
                     showCommandMagnets={showCommandMagnets}
                     showDataMagnets={showDataMagnets}
-                    draggingPortCount={draggingPortCount}
                     isMagnetic={isMagnetic}
                 />
 

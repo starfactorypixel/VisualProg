@@ -11,7 +11,7 @@ import { genId } from './utils/id';
 function App() {
     const { addNode, scale, pan, setData, loadTemplate, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
     const canvasWrapperRef = useRef<HTMLDivElement>(null);
-    const lastRightClickPos = useRef<{ x: number; y: number } | null>(null);
+    const lastMousePos = useRef<{ x: number; y: number } | null>(null);
 
     const sidebarDock = usePanelLayoutStore(s => s.panels['sidebar']?.dock ?? 'left');
     const variablesDock = usePanelLayoutStore(s => s.panels['variablesBar']?.dock ?? 'top');
@@ -27,20 +27,16 @@ function App() {
         return () => document.removeEventListener('contextmenu', disableContextMenu);
     }, []);
 
-    // Store last right-click position for paste
+    // Текущая позиция курсора — нужна для Ctrl+V (вставка под мышь, а не в центр
+    // экрана или в точку последнего правого клика, который мог быть совсем не там)
     useEffect(() => {
-        const handleContextMenu = (e: MouseEvent) => {
-            const rect = canvasWrapperRef.current?.getBoundingClientRect();
-            if (rect) {
-                const worldX = (e.clientX - rect.left - pan.x) / scale;
-                const worldY = (e.clientY - rect.top - pan.y) / scale;
-                lastRightClickPos.current = { x: worldX, y: worldY };
-            }
+        const handleMouseMove = (e: MouseEvent) => {
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
         };
 
-        window.addEventListener('contextmenu', handleContextMenu);
-        return () => window.removeEventListener('contextmenu', handleContextMenu);
-    }, [pan, scale]);
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
 
     // Горячие клавиши для Undo/Redo и Copy/Paste
     useEffect(() => {
@@ -78,10 +74,16 @@ function App() {
             }
             else if (isCtrlOrMeta && e.code === 'KeyV') {
                 e.preventDefault();
-                const pastePos = lastRightClickPos.current || {
-                    x: (-pan.x + window.innerWidth / 2) / scale,
-                    y: (-pan.y + window.innerHeight / 2) / scale
-                };
+                const rect = canvasWrapperRef.current?.getBoundingClientRect();
+                const pastePos = (rect && lastMousePos.current)
+                    ? {
+                        x: (lastMousePos.current.x - rect.left - pan.x) / scale,
+                        y: (lastMousePos.current.y - rect.top - pan.y) / scale
+                    }
+                    : {
+                        x: (-pan.x + window.innerWidth / 2) / scale,
+                        y: (-pan.y + window.innerHeight / 2) / scale
+                    };
                 pasteNodes(pastePos);
             }
         };

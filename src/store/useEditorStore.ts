@@ -99,8 +99,6 @@ interface EditorStore {
         isMagnetic: boolean;        // Примагничена ли нода
         magneticPosition: Position | null;
         nodeType?: 'command' | 'data';
-        dataPortCount?: number;     // Кол-во data-портов переносимой command-ноды — учитывается при расчёте линии ряда
-        previewGridRows?: GridRow[]; // Сетка без переносимой ноды (её исходный ряд уже пересчитан так, будто она ушла)
         magneticTargetRowIds?: string[]; // Ноды, уже стоящие в целевом ряду — их тоже нужно подтянуть на линию при drop
         snapshot?: EditorStateSnapshot;  // Снимок состояния до перемещения
     } | null;
@@ -320,33 +318,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             originalPositions.set(nodeId, { ...position });
         }
 
-        // Сколько data-портов у переносимой команды — чтобы точка примагничивания
-        // сразу резервировала под неё место, а не только под уже стоящие в ряду ноды
-        const dataPortCount = nodeType === 'command'
-            ? getDataPortCount(nodeId, state.nodes, state.connections, state.nodeDefinitions, state.dataTypes)
-            : 0;
-
-        // Гипотетическая сетка «как если бы нода уже покинула свой исходный ряд».
-        // Без этого исходный ряд (который мог быть растянут именно из-за этой ноды)
-        // на превью остаётся старого размера, а после реального пересчёта на drop
-        // сжимается и сдвигает все нижележащие ряды — нода в итоге примагничивается
-        // не туда, где реально осядет.
-        const previewGridRows = nodeType === 'command'
-            ? recalculateGridRows(
-                state.nodes.filter(n => n.id !== nodeId),
-                state.connections,
-                state.magneticGridConfig,
-                state.nodeDefinitions,
-                state.dataTypes
-              )
-            : state.gridRows;
-
         return {
             draggingState: {
                 nodeId,
                 nodeType,
-                dataPortCount,
-                previewGridRows,
                 originalPosition: { ...node.position },
                 originalPositions,
                 isMagnetic: false,
@@ -528,12 +503,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     findNearestGridPoint: (position, nodeType) => {
         const state = get();
-        const draggedPortCount = nodeType === 'command' ? (state.draggingState?.dataPortCount ?? 0) : 0;
-        // Пока идёт command-драг — ищем точку по сетке, где исходный ряд уже "освобождён"
-        const rows = nodeType === 'command' && state.draggingState?.previewGridRows
-            ? state.draggingState.previewGridRows
-            : state.gridRows;
-        return findNearestGridPoint(position, nodeType, rows, state.magneticGridConfig, draggedPortCount);
+        // Сетка во время драга полностью заморожена (state.gridRows, без поправки на
+        // будущие порты переносимой ноды) — исходный и целевой ряды не меняют размер
+        // заранее, пересчёт (в т.ч. рост ряда под новые порты) произойдёт только
+        // после drop в recalculateGrid()
+        return findNearestGridPoint(position, nodeType, state.gridRows, state.magneticGridConfig);
     },
 
     updateNodePosition: (id, position) => set((state) => ({
@@ -1535,8 +1509,7 @@ function findNearestGridPoint(
     position: Position,
     nodeType: 'command' | 'data',
     gridRows: GridRow[],
-    config: MagneticGridConfig,
-    draggedPortCount: number = 0
+    config: MagneticGridConfig
 ): { point: Position; distance: number; col: number; row: number; rowCommandNodeIds: string[] } | null {
     if (gridRows.length === 0) return null;
 
@@ -1547,23 +1520,29 @@ function findNearestGridPoint(
         // Для команд: привязка к пересечениям вертикальных и горизонтальных линий
         // Центр верха node привязывается к точке пересечения
 
-        // Вертикальные колонки: 0, 350, 700, 1050, ...
-        const columns = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => i * config.commandColumnSpacing);
+        // Колонки считаем вокруг текущей позиции ноды, а не фиксированным диапазоном
+        // от нуля — иначе на удалении от начала координат (далеко вправо/влево от
+        // (0,0), а визуально сетка рисуется на весь экран) ноды переставали бы
+        // примагничиваться: точки были видны, но не входили в проверяемый диапазон.
+        const nodeCenterTopX = position.x + 75;
+        const nearestColIndex = Math.round(nodeCenterTopX / config.commandColumnSpacing);
+        const COLUMN_WINDOW = 2;
+        const columns: number[] = [];
+        for (let i = nearestColIndex - COLUMN_WINDOW; i <= nearestColIndex + COLUMN_WINDOW; i++) {
+            columns.push(i * config.commandColumnSpacing);
+        }
 
         gridRows.forEach((row, rowIndex) => {
-            // Ряд должен резервировать место под data-порты и уже стоящих там нод,
-            // и переносимой — иначе после commit/recalculateGrid() линия уедет ниже
-            // той точки, к которой нода примагнитилась во время перетаскивания.
-            const effectiveMaxDataPorts = Math.max(row.maxDataPorts, draggedPortCount);
-            const intersectionY = row.y + effectiveMaxDataPorts * dataUnitHeight;
+            // Точка — по текущей (замороженной) высоте ряда, без поправки на порты
+            // переносимой ноды: после drop ряд может подрасти и сдвинуть точку ниже —
+            // это ожидаемо, пересчёт делает recalculateGrid() одним шагом.
+            const intersectionY = row.y + row.maxDataPorts * dataUnitHeight;
 
             columns.forEach((colX, colIndex) => {
                 // Точка пересечения
                 const intersectionX = colX;
 
-                // Вычисляем расстояние от центра верха node до точки пересечения
                 // Центр верха node = position.x + 75, position.y (если node width = 150)
-                const nodeCenterTopX = position.x + 75;
                 const nodeCenterTopY = position.y;
 
                 const dx = nodeCenterTopX - intersectionX;
@@ -1580,27 +1559,32 @@ function findNearestGridPoint(
                         distance,
                         col: colIndex,
                         row: rowIndex,
-                        // Ноды, уже стоящие в этом ряду (без переносимой — gridRows тут это уже
-                        // previewGridRows). На drop их нужно подтянуть на ту же линию, иначе
-                        // кластеризация по 50px допуску их не объединит с переносимой нодой.
+                        // Ноды, уже стоящие в этом ряду. На drop их нужно подтянуть на ту же
+                        // линию, иначе кластеризация по 50px допуску их не объединит с переносимой нодой.
                         rowCommandNodeIds: row.commandNodeIds
                     };
                 }
             });
         });
     } else {
-        // Для данных: сетка смещена влево, привязка такая же
-        const dataColumns = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => i * config.commandColumnSpacing - config.dataColumnOffset);
+        // Для данных: сетка смещена влево, привязка такая же. Колонки — вокруг текущей
+        // позиции ноды (та же причина, что и у command-колонок выше).
+        const nodeCenterTopX = position.x + 75;
+        const nearestDataColIndex = Math.round((nodeCenterTopX + config.dataColumnOffset) / config.commandColumnSpacing);
+        const DATA_COLUMN_WINDOW = 2;
+        const dataColumns: number[] = [];
+        for (let i = nearestDataColIndex - DATA_COLUMN_WINDOW; i <= nearestDataColIndex + DATA_COLUMN_WINDOW; i++) {
+            dataColumns.push(i * config.commandColumnSpacing - config.dataColumnOffset);
+        }
 
         gridRows.forEach((row, rowIndex) => {
             // Для каждого ряда создаем горизонтальные линии данных
             const dataRowsCount = row.maxDataPorts;
-            
+
             for (let dataRowIdx = 0; dataRowIdx < dataRowsCount; dataRowIdx++) {
                 const dataY = row.y + dataRowIdx * (config.dataNodeHeight + config.dataNodeGap);
 
                 dataColumns.forEach((colX, colIndex) => {
-                    const nodeCenterTopX = position.x + 75;
                     const nodeCenterTopY = position.y;
 
                     const dx = nodeCenterTopX - colX;

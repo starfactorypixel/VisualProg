@@ -1,0 +1,843 @@
+{
+  "nodes": [
+    {
+      "id": "a618ef39-f0e8-4967-ac0d-e5a472d13d7b",
+      "definitionId": "cmd_ScriptInit",
+      "type": "command",
+      "position": {
+        "x": 980.7142857142858,
+        "y": 772
+      },
+      "data": {}
+    },
+    {
+      "id": "7404c43f-be8b-486b-8cb9-120dad8acaf7",
+      "definitionId": "cmd_TriggerParseReg",
+      "type": "command",
+      "position": {
+        "x": 1675,
+        "y": 772
+      },
+      "data": {
+        "label": "Parsing (VAL)"
+      }
+    },
+    {
+      "id": "b3a6bd65-c64c-424f-9fb6-df4043902efc",
+      "definitionId": "register",
+      "type": "data",
+      "position": {
+        "x": 1845,
+        "y": 676
+      },
+      "data": {
+        "value": "0x07",
+        "locked": true
+      }
+    },
+    {
+      "id": "b2fda82c-c9ca-4d5a-a576-259e80a8163f",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 1495,
+        "y": 676
+      },
+      "data": {
+        "value": "1",
+        "label": "Offset"
+      }
+    },
+    {
+      "id": "5f81c1a3-9105-4e4c-8586-c29ab6884ad8",
+      "definitionId": "cmd_TriggerParseReg",
+      "type": "command",
+      "position": {
+        "x": 1325,
+        "y": 772
+      },
+      "data": {
+        "label": "Parsing (FID)"
+      }
+    },
+    {
+      "id": "44901dc9-4020-41c1-ad1f-6604a59c0595",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 1145,
+        "y": 676
+      },
+      "data": {
+        "value": "0",
+        "label": "offset"
+      }
+    },
+    {
+      "id": "accfc0af-e5b8-454e-8cf8-7901e39ab5c3",
+      "definitionId": "register",
+      "type": "data",
+      "position": {
+        "x": 1495,
+        "y": 484
+      },
+      "data": {
+        "value": "0x06"
+      }
+    },
+    {
+      "id": "38528e15-f28a-46a3-af96-0ef3aa82bd83",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 2025,
+        "y": 772
+      },
+      "data": {}
+    },
+    {
+      "id": "95ca8700-c222-4265-92da-0166760ba0e1",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 1845,
+        "y": 580
+      },
+      "data": {
+        "value": "0x01"
+      }
+    },
+    {
+      "id": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "definitionId": "cmd_CanSendRegVal11",
+      "type": "command",
+      "position": {
+        "x": 2725,
+        "y": 772
+      },
+      "data": {
+        "op7": "2"
+      }
+    },
+    {
+      "id": "b974d5ff-b455-44a1-b4dc-7ddf336c7f83",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 2545,
+        "y": 388
+      },
+      "data": {
+        "value": "0x01C4",
+        "label": "CAN ID"
+      }
+    },
+    {
+      "id": "32d927cd-40f8-47b3-b978-b634a0d57293",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 2545,
+        "y": 484
+      },
+      "data": {
+        "value": "0x01",
+        "label": "Func ID"
+      }
+    },
+    {
+      "id": "8b2e8663-eee7-436d-8a50-70af69a73fe1",
+      "definitionId": "register",
+      "type": "data",
+      "position": {
+        "x": 2545,
+        "y": 676
+      },
+      "data": {
+        "value": "0x07",
+        "locked": false
+      }
+    },
+    {
+      "id": "n0n1ss2g2",
+      "definitionId": "var_type",
+      "type": "data",
+      "position": {
+        "x": 2545,
+        "y": 580
+      },
+      "data": {
+        "value": "0x01"
+      }
+    },
+    {
+      "id": "7kewm3ftm",
+      "definitionId": "var_type",
+      "type": "data",
+      "position": {
+        "x": 1145,
+        "y": 580
+      },
+      "data": {
+        "value": "0x01"
+      }
+    },
+    {
+      "id": "007ua1a2p",
+      "definitionId": "var_type",
+      "type": "data",
+      "position": {
+        "x": 1495,
+        "y": 580
+      },
+      "data": {
+        "value": "0x01"
+      }
+    },
+    {
+      "id": "7fykx0fz3",
+      "definitionId": "cmd_CanSendRegVal11",
+      "type": "command",
+      "position": {
+        "x": 3075,
+        "y": 772
+      },
+      "data": {
+        "op7": "2"
+      }
+    },
+    {
+      "id": "bkm81b8gy",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 3425,
+        "y": 772
+      },
+      "data": {}
+    },
+    {
+      "id": "o1jgo7iep",
+      "definitionId": "number",
+      "type": "data",
+      "position": {
+        "x": 2895,
+        "y": 388
+      },
+      "data": {
+        "value": "0x01E4",
+        "label": "CAN ID"
+      }
+    },
+    {
+      "id": "ohw2dv1be",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 2375,
+        "y": 1764
+      },
+      "data": {
+        "op2": "0x65",
+        "op1": "0x06"
+      }
+    },
+    {
+      "id": "lmwa6pxpf",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 2725,
+        "y": 1764
+      },
+      "data": {
+        "op1": "0x01",
+        "op2": "0x01C4"
+      }
+    },
+    {
+      "id": "ekmmwujt2",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 2725,
+        "y": 2929
+      },
+      "data": {
+        "op1": "0x01",
+        "op2": "0x01E4"
+      }
+    },
+    {
+      "id": "6oqk00nuj",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 2725,
+        "y": 3412
+      },
+      "data": {}
+    },
+    {
+      "id": "0quppyz20",
+      "definitionId": "cmd_SetScriptArgReg8",
+      "type": "command",
+      "position": {
+        "x": 4475,
+        "y": 2517
+      },
+      "data": {
+        "op1": "0xFFFF",
+        "op2": "0",
+        "op3": "0x08"
+      }
+    },
+    {
+      "id": "uvm8qvm3l",
+      "definitionId": "cmd_OrRegVal",
+      "type": "command",
+      "position": {
+        "x": 4125,
+        "y": 2517
+      },
+      "data": {
+        "inR": "0x08",
+        "inC": "0x01"
+      }
+    },
+    {
+      "id": "7iqcxijy0",
+      "definitionId": "cmd_CanSendRegVal11",
+      "type": "command",
+      "position": {
+        "x": 4125.524212543194,
+        "y": 1764
+      },
+      "data": {
+        "op1": "0x0024",
+        "op7": "2",
+        "op2": "0x65",
+        "op3": "0x01",
+        "op4": "0x07"
+      }
+    },
+    {
+      "id": "veiimcb1e",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 3075,
+        "y": 1764
+      },
+      "data": {
+        "op2": "0x02",
+        "op1": "0x02"
+      }
+    },
+    {
+      "id": "pbx4x8apm",
+      "definitionId": "cmd_IfRegRegEqu",
+      "type": "command",
+      "position": {
+        "x": 3775,
+        "y": 1764
+      },
+      "data": {
+        "op1": "0x03",
+        "op2": "0x04"
+      }
+    },
+    {
+      "id": "qsj1zzq1t",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 4475.524212543194,
+        "y": 1764
+      },
+      "data": {}
+    },
+    {
+      "id": "uisclgf5e",
+      "definitionId": "cmd_SetRegReg",
+      "type": "command",
+      "position": {
+        "x": 3775,
+        "y": 2517
+      },
+      "data": {
+        "op1": "0x02",
+        "res": "0x08"
+      }
+    },
+    {
+      "id": "qfr1clicm",
+      "definitionId": "cmd_SetScriptArgReg8",
+      "type": "command",
+      "position": {
+        "x": 4825,
+        "y": 2517
+      },
+      "data": {
+        "op1": "0xFFFF",
+        "op2": "1",
+        "op3": "0x07"
+      }
+    },
+    {
+      "id": "4i00z8tsy",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 5175,
+        "y": 2517
+      },
+      "data": {}
+    },
+    {
+      "id": "qwzgoix58",
+      "definitionId": "cmd_IfRegValEqu",
+      "type": "command",
+      "position": {
+        "x": 3075,
+        "y": 2929
+      },
+      "data": {
+        "op2": "0x01",
+        "op1": "0x02"
+      }
+    },
+    {
+      "id": "rv0m85j0s",
+      "definitionId": "cmd_Goto",
+      "type": "command",
+      "position": {
+        "x": 3425,
+        "y": 2929
+      },
+      "data": {}
+    },
+    {
+      "id": "yf4pb1xyw",
+      "definitionId": "cmd_SetScriptArgReg8",
+      "type": "command",
+      "position": {
+        "x": 4475,
+        "y": 3412
+      },
+      "data": {
+        "op1": "0xFFFF",
+        "op2": "0",
+        "op3": "0x08"
+      }
+    },
+    {
+      "id": "hvf0m2wcp",
+      "definitionId": "cmd_OrRegVal",
+      "type": "command",
+      "position": {
+        "x": 4125,
+        "y": 3412
+      },
+      "data": {
+        "inR": "0x08",
+        "inC": "0x02"
+      }
+    },
+    {
+      "id": "d7cgbrang",
+      "definitionId": "cmd_SetRegReg",
+      "type": "command",
+      "position": {
+        "x": 3775,
+        "y": 3412
+      },
+      "data": {
+        "op1": "0x02",
+        "res": "0x08"
+      }
+    },
+    {
+      "id": "k1w08o56n",
+      "definitionId": "cmd_SetScriptArgReg8",
+      "type": "command",
+      "position": {
+        "x": 4825,
+        "y": 3412
+      },
+      "data": {
+        "op1": "0xFFFF",
+        "op2": "2",
+        "op3": "0x07"
+      }
+    },
+    {
+      "id": "ov2ybrjnq",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 5175,
+        "y": 3412
+      },
+      "data": {}
+    },
+    {
+      "id": "hd1560ztb",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 2725,
+        "y": 2084
+      },
+      "data": {}
+    },
+    {
+      "id": "q9pwyn280",
+      "definitionId": "cmd_SetScriptArgVal",
+      "type": "command",
+      "position": {
+        "x": 2375,
+        "y": 772
+      },
+      "data": {
+        "op1": "0xFFFF",
+        "op2": "0",
+        "op3": "0"
+      }
+    },
+    {
+      "id": "lppp5xvzn",
+      "definitionId": "cmd_Exit",
+      "type": "command",
+      "position": {
+        "x": 4125,
+        "y": 2084
+      },
+      "data": {}
+    }
+  ],
+  "connections": [
+    {
+      "id": "ap6k7y0py",
+      "fromNodeId": "7404c43f-be8b-486b-8cb9-120dad8acaf7",
+      "fromPortId": "res",
+      "toNodeId": "b3a6bd65-c64c-424f-9fb6-df4043902efc",
+      "toPortId": "bottom"
+    },
+    {
+      "id": "zm8j9duaw",
+      "fromNodeId": "b2fda82c-c9ca-4d5a-a576-259e80a8163f",
+      "fromPortId": "bottom",
+      "toNodeId": "7404c43f-be8b-486b-8cb9-120dad8acaf7",
+      "toPortId": "op2"
+    },
+    {
+      "id": "5o5vhg7xv",
+      "fromNodeId": "a618ef39-f0e8-4967-ac0d-e5a472d13d7b",
+      "fromPortId": "exec_out",
+      "toNodeId": "5f81c1a3-9105-4e4c-8586-c29ab6884ad8",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "rcjyjvlb3",
+      "fromNodeId": "44901dc9-4020-41c1-ad1f-6604a59c0595",
+      "fromPortId": "bottom",
+      "toNodeId": "5f81c1a3-9105-4e4c-8586-c29ab6884ad8",
+      "toPortId": "op2"
+    },
+    {
+      "id": "jk5kxsu7x",
+      "fromNodeId": "5f81c1a3-9105-4e4c-8586-c29ab6884ad8",
+      "fromPortId": "res",
+      "toNodeId": "accfc0af-e5b8-454e-8cf8-7901e39ab5c3",
+      "toPortId": "left"
+    },
+    {
+      "id": "flxk85lpb",
+      "fromNodeId": "accfc0af-e5b8-454e-8cf8-7901e39ab5c3",
+      "fromPortId": "right",
+      "toNodeId": "38528e15-f28a-46a3-af96-0ef3aa82bd83",
+      "toPortId": "op1"
+    },
+    {
+      "id": "h37p4cktp",
+      "fromNodeId": "32d927cd-40f8-47b3-b978-b634a0d57293",
+      "fromPortId": "right",
+      "toNodeId": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "toPortId": "op2"
+    },
+    {
+      "id": "7r8ciof3l",
+      "fromNodeId": "b974d5ff-b455-44a1-b4dc-7ddf336c7f83",
+      "fromPortId": "right",
+      "toNodeId": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "toPortId": "op1"
+    },
+    {
+      "id": "yypwj1tun",
+      "fromNodeId": "n0n1ss2g2",
+      "fromPortId": "right",
+      "toNodeId": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "toPortId": "op3"
+    },
+    {
+      "id": "d6t32qkfi",
+      "fromNodeId": "7kewm3ftm",
+      "fromPortId": "right",
+      "toNodeId": "5f81c1a3-9105-4e4c-8586-c29ab6884ad8",
+      "toPortId": "op1"
+    },
+    {
+      "id": "gbf7juwbw",
+      "fromNodeId": "007ua1a2p",
+      "fromPortId": "right",
+      "toNodeId": "7404c43f-be8b-486b-8cb9-120dad8acaf7",
+      "toPortId": "op1"
+    },
+    {
+      "id": "m6s09eucy",
+      "fromNodeId": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "fromPortId": "exec_out",
+      "toNodeId": "7fykx0fz3",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "3mtaqi50c",
+      "fromNodeId": "7fykx0fz3",
+      "fromPortId": "exec_out",
+      "toNodeId": "bkm81b8gy",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "9578s1de6",
+      "fromNodeId": "8b2e8663-eee7-436d-8a50-70af69a73fe1",
+      "fromPortId": "right",
+      "toNodeId": "7fykx0fz3",
+      "toPortId": "op4"
+    },
+    {
+      "id": "jkpb55r4a",
+      "fromNodeId": "n0n1ss2g2",
+      "fromPortId": "right",
+      "toNodeId": "7fykx0fz3",
+      "toPortId": "op3"
+    },
+    {
+      "id": "ezfstjyei",
+      "fromNodeId": "32d927cd-40f8-47b3-b978-b634a0d57293",
+      "fromPortId": "right",
+      "toNodeId": "7fykx0fz3",
+      "toPortId": "op2"
+    },
+    {
+      "id": "sh7fbmre8",
+      "fromNodeId": "o1jgo7iep",
+      "fromPortId": "right",
+      "toNodeId": "7fykx0fz3",
+      "toPortId": "op1"
+    },
+    {
+      "id": "jy7p9hwst",
+      "fromNodeId": "8b2e8663-eee7-436d-8a50-70af69a73fe1",
+      "fromPortId": "bottom",
+      "toNodeId": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "toPortId": "op4"
+    },
+    {
+      "id": "brewzl6sr",
+      "fromNodeId": "38528e15-f28a-46a3-af96-0ef3aa82bd83",
+      "fromPortId": "exec_false",
+      "toNodeId": "ohw2dv1be",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "mhcdcfg38",
+      "fromNodeId": "ohw2dv1be",
+      "fromPortId": "exec_true",
+      "toNodeId": "lmwa6pxpf",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "mo3zgrnql",
+      "fromNodeId": "5f81c1a3-9105-4e4c-8586-c29ab6884ad8",
+      "fromPortId": "exec_out",
+      "toNodeId": "7404c43f-be8b-486b-8cb9-120dad8acaf7",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "96amftc55",
+      "fromNodeId": "7404c43f-be8b-486b-8cb9-120dad8acaf7",
+      "fromPortId": "exec_out",
+      "toNodeId": "38528e15-f28a-46a3-af96-0ef3aa82bd83",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "h0iohb4u2",
+      "fromNodeId": "95ca8700-c222-4265-92da-0166760ba0e1",
+      "fromPortId": "right",
+      "toNodeId": "38528e15-f28a-46a3-af96-0ef3aa82bd83",
+      "toPortId": "op2"
+    },
+    {
+      "id": "84eao6s70",
+      "fromNodeId": "lmwa6pxpf",
+      "fromPortId": "exec_false",
+      "toNodeId": "ekmmwujt2",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "8wwoovgwe",
+      "fromNodeId": "ekmmwujt2",
+      "fromPortId": "exec_false",
+      "toNodeId": "6oqk00nuj",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "qc6mi9pdg",
+      "fromNodeId": "lmwa6pxpf",
+      "fromPortId": "exec_true",
+      "toNodeId": "veiimcb1e",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "cllxk78q6",
+      "fromNodeId": "veiimcb1e",
+      "fromPortId": "exec_true",
+      "toNodeId": "pbx4x8apm",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "d9j6ddpjj",
+      "fromNodeId": "pbx4x8apm",
+      "fromPortId": "exec_true",
+      "toNodeId": "7iqcxijy0",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "48lh5ia1e",
+      "fromNodeId": "7iqcxijy0",
+      "fromPortId": "exec_out",
+      "toNodeId": "qsj1zzq1t",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "zjb3aydqb",
+      "fromNodeId": "veiimcb1e",
+      "fromPortId": "exec_false",
+      "toNodeId": "uisclgf5e",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "3rta8opou",
+      "fromNodeId": "uvm8qvm3l",
+      "fromPortId": "exec_out",
+      "toNodeId": "0quppyz20",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "k4ciwbmff",
+      "fromNodeId": "uisclgf5e",
+      "fromPortId": "exec_out",
+      "toNodeId": "uvm8qvm3l",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "rxef96p9n",
+      "fromNodeId": "0quppyz20",
+      "fromPortId": "exec_out",
+      "toNodeId": "qfr1clicm",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "8bh4qlm8v",
+      "fromNodeId": "qfr1clicm",
+      "fromPortId": "exec_out",
+      "toNodeId": "4i00z8tsy",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "2olhz4imh",
+      "fromNodeId": "ekmmwujt2",
+      "fromPortId": "exec_true",
+      "toNodeId": "qwzgoix58",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "a37vn2jh3",
+      "fromNodeId": "qwzgoix58",
+      "fromPortId": "exec_true",
+      "toNodeId": "rv0m85j0s",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "ox4j3noxs",
+      "fromNodeId": "rv0m85j0s",
+      "fromPortId": "exec_out",
+      "toNodeId": "pbx4x8apm",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "b5jww9vtr",
+      "fromNodeId": "hvf0m2wcp",
+      "fromPortId": "exec_out",
+      "toNodeId": "yf4pb1xyw",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "fn6u7nzam",
+      "fromNodeId": "d7cgbrang",
+      "fromPortId": "exec_out",
+      "toNodeId": "hvf0m2wcp",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "tutp2nicb",
+      "fromNodeId": "yf4pb1xyw",
+      "fromPortId": "exec_out",
+      "toNodeId": "k1w08o56n",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "jq3gdszjz",
+      "fromNodeId": "k1w08o56n",
+      "fromPortId": "exec_out",
+      "toNodeId": "ov2ybrjnq",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "tujf6axv0",
+      "fromNodeId": "qwzgoix58",
+      "fromPortId": "exec_false",
+      "toNodeId": "d7cgbrang",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "608859l68",
+      "fromNodeId": "ohw2dv1be",
+      "fromPortId": "exec_false",
+      "toNodeId": "hd1560ztb",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "f7ih1pohg",
+      "fromNodeId": "38528e15-f28a-46a3-af96-0ef3aa82bd83",
+      "fromPortId": "exec_true",
+      "toNodeId": "q9pwyn280",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "k675b9lhx",
+      "fromNodeId": "q9pwyn280",
+      "fromPortId": "exec_out",
+      "toNodeId": "012e343a-f7fe-472a-9e32-c7c5398e6d34",
+      "toPortId": "exec_in"
+    },
+    {
+      "id": "oql3tdxdq",
+      "fromNodeId": "pbx4x8apm",
+      "fromPortId": "exec_false",
+      "toNodeId": "lppp5xvzn",
+      "toPortId": "exec_in"
+    }
+  ]
+}
