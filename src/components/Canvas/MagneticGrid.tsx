@@ -1,5 +1,55 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useEditorStore, GridRow, MagneticGridConfig } from '../../store/useEditorStore';
+import { shallow } from 'zustand/shallow';
+
+// Пересчитывать содержимое тяжёлой сетки (см. StaticMagneticGrid ниже) на каждый
+// mousemove незачем: вокруг экрана уже есть буфер в 1 ширину/высоту экрана с
+// каждой стороны (см. startX/endX/startY/endY в StaticMagneticGrid), а видимое
+// перемещение/зум сетки даёт transform на родительском <g> — он не требует
+// пересборки SVG-узлов. Поэтому пересчёт просто откладывается до паузы в
+// движении (trailing debounce), а не гонится за каждым тиком: именно "накопить
+// все тики, посчитать один раз после паузы" и даёт выигрыш, тогда как throttle
+// по "времени с прошлого коммита" на мощной сетке сам себя обнуляет — если один
+// пересчёт дольше интервала, то ко времени, когда эффект срабатывает снова,
+// интервал уже и так истёк (поток был занят предыдущим рендером), и throttle
+// пропускает КАЖДЫЙ тик вместо одного раз в интервал.
+const GRID_RECALC_DEBOUNCE_MS = 120;
+
+// Выше этого числа точек-пересечений в поле зрения (с буфером) перестаём
+// рисовать отдельные маркеры примагничивания — см. комментарий у
+// totalCommandIntersections/totalDataIntersections в StaticMagneticGrid.
+const MAX_MAGNET_INTERSECTIONS = 600;
+
+// Отдаёт "подтверждённые" pan/scale — обновляются один раз, через
+// GRID_RECALC_DEBOUNCE_MS после того как pan/scale перестали меняться — в
+// отличие от живых pan/scale, которые меняются на каждый mousemove во время
+// панорамирования/зума. Только подтверждённые значения должны попадать в
+// StaticMagneticGrid — иначе его React.memo бесполезен именно тогда, когда
+// нужнее всего (много нод + сильное отдаление + панорамирование средней кнопкой).
+function useDebouncedPanScale(pan: { x: number; y: number }, scale: number, waitMs: number) {
+    const [committed, setCommitted] = useState({ pan, scale });
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (timeoutRef.current !== null) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(() => {
+            timeoutRef.current = null;
+            setCommitted({ pan, scale });
+        }, waitMs);
+
+        return () => {
+            if (timeoutRef.current !== null) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pan.x, pan.y, scale, waitMs]);
+
+    return committed;
+}
 
 interface StaticGridProps {
     pan: { x: number; y: number };
@@ -38,6 +88,19 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
     }
     const dataColumns = commandColumns.map(x => x - dataColumnOffset);
     const dataUnitHeight = config.dataNodeHeight + config.dataNodeGap;
+
+    // Точки-пересечения (кружок+крест на каждом пересечении строки и колонки) —
+    // это O(rows × columns) элементов, а columns растёт как 1/scale: при сильном
+    // отдалении + большом графе (много рядов) их счёт улетает в десятки тысяч —
+    // именно это и было причиной подвисаний при панорамировании средней кнопкой
+    // в магнитном режиме. При такой плотности точки всё равно сливаются в кашу
+    // и не несут пользы как прицел, поэтому выше порога рисуем только полосы
+    // строк и опорные линии колонок (они O(rows) и O(columns) соответственно —
+    // дёшево в любом случае), а точки пересечений скрываем целиком.
+    const totalCommandIntersections = commandColumns.length * displayRows.length;
+    const totalDataIntersections = dataColumns.length * displayRows.reduce((sum, row) => sum + row.maxDataPorts, 0);
+    const showCommandIntersections = totalCommandIntersections <= MAX_MAGNET_INTERSECTIONS;
+    const showDataIntersections = totalDataIntersections <= MAX_MAGNET_INTERSECTIONS;
 
     return (
         <>
@@ -95,7 +158,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                                 Row {row.index} (ports: {row.maxDataPorts})
                             </text>
 
-                            {commandColumns.map((x, colIdx) => (
+                            {showCommandIntersections && commandColumns.map((x, colIdx) => (
                                 <g key={`intersection-cmd-${row.index}-${colIdx}`}>
                                     {showCommandMagnets && !isMagnetic && (
                                         <circle
@@ -131,7 +194,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                                             strokeDasharray="3,3"
                                         />
 
-                                        {dataColumns.map((x, colIdx) => (
+                                        {showDataIntersections && dataColumns.map((x, colIdx) => (
                                             <g key={`intersection-data-${row.index}-${dataRowIdx}-${colIdx}`}>
                                                 {showDataMagnets && !isMagnetic && (
                                                     <circle
@@ -164,7 +227,18 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
 StaticMagneticGrid.displayName = 'StaticMagneticGrid';
 
 export const MagneticGrid: React.FC = () => {
-    const { scale, pan, magneticGridMode, magneticGridConfig, gridRows, draggingState } = useEditorStore();
+    const { scale, pan, magneticGridMode, magneticGridConfig, gridRows, draggingState } = useEditorStore((state) => ({
+        scale: state.scale,
+        pan: state.pan,
+        magneticGridMode: state.magneticGridMode,
+        magneticGridConfig: state.magneticGridConfig,
+        gridRows: state.gridRows,
+        draggingState: state.draggingState,
+    }), shallow);
+
+    // committedPan/committedScale отстают от живых pan/scale максимум на
+    // GRID_RECALC_DEBOUNCE_MS после остановки движения — см. useDebouncedPanScale.
+    const { pan: committedPan, scale: committedScale } = useDebouncedPanScale(pan, scale, GRID_RECALC_DEBOUNCE_MS);
 
     if (!magneticGridMode) return null;
 
@@ -196,8 +270,8 @@ export const MagneticGrid: React.FC = () => {
 
             <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
                 <StaticMagneticGrid
-                    pan={pan}
-                    scale={scale}
+                    pan={committedPan}
+                    scale={committedScale}
                     config={magneticGridConfig}
                     displayRows={displayRows}
                     showCommandMagnets={showCommandMagnets}
