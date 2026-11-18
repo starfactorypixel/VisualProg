@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { NodeGroupsPanel } from './NodeGroupsPanel';
 import { FunctionsPanel } from './FunctionsPanel';
+import { TemplateIcon } from '../UI/TemplateIcon';
 import clsx from 'clsx';
 
 type SidebarTab = 'commands' | 'groups' | 'data' | 'functions';
@@ -125,9 +126,16 @@ export const Sidebar: React.FC = () => {
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, 'command', def.id)}
                                     >
-                                        <div
-                                            className="w-2 h-2 rounded-full shrink-0"
-                                            style={{ backgroundColor: def.visual?.color || '#555' }}
+                                        <TemplateIcon
+                                            id={def.id}
+                                            size={14}
+                                            className="shrink-0 object-contain"
+                                            fallback={
+                                                <div
+                                                    className="w-2 h-2 rounded-full shrink-0"
+                                                    style={{ backgroundColor: def.visual?.color || '#555' }}
+                                                />
+                                            }
                                         />
                                         <span className="text-xs text-neutral-300 truncate">
                                             {renderName(def.name)}

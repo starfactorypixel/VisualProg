@@ -1644,7 +1644,7 @@
             "length": 6
         },
         "cmd_MulRegVal": {
-            "name": "SubRegVal",
+            "name": "MulRegVal",
             "nodeType": "function",
             "visual": {
                 "color": "#f59e0b"
@@ -1752,7 +1752,7 @@
             "length": 3
         },
         "cmd_MulRegReg": {
-            "name": "SubRegReg",
+            "name": "MulRegReg",
             "nodeType": "function",
             "visual": {
                 "color": "#f59e0b"

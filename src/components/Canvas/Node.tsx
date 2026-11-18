@@ -5,6 +5,7 @@ import { resolveNodeDefinition } from '../../utils/functionSignature';
 import { shallow } from 'zustand/shallow';
 import clsx from 'clsx';
 import { Lock, Unlock } from 'lucide-react';
+import { TemplateIcon } from '../UI/TemplateIcon';
 
 interface NodeProps {
     data: NodeInstance;
@@ -439,6 +440,9 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                     />
                 ) : (
                     <div className="flex items-center gap-2 w-full">
+                        {data.type === 'command' && (
+                            <TemplateIcon id={definition.id} size={16} className="shrink-0 object-contain" />
+                        )}
                         <span className="font-semibold text-neutral-200 capitalize truncate flex-1" title="Double click to rename">
                             {data.data?.label || definition.name}
                         </span>

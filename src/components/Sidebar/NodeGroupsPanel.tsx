@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { NodeGroupDef } from '../../utils/TemplateSchema';
+import { TemplateIcon } from '../UI/TemplateIcon';
 import clsx from 'clsx';
 
 // ─── Tree types ───────────────────────────────────────────────────────────────
@@ -12,6 +13,10 @@ import clsx from 'clsx';
 interface TreeBranch {
     type: 'branch';
     id: string;
+    // id опции шага в шаблоне (step.options[].id, напр. "opt_lt") — используется
+    // как ключ для картинки подгруппы (см. TemplateIcon в renderNode). У КОРНЕВОЙ
+    // ветки группы его нет — для неё ключ картинки это id самой группы (node.id).
+    optionId?: string;
     label: string;
     description?: string;
     color: string;
@@ -53,7 +58,7 @@ function buildOptionTree(group: NodeGroupDef, priorTags: string[], stepIdx: numb
             return { ...children[0], id: nodeId, label: opt.label };
         }
 
-        return { type: 'branch', id: nodeId, label: opt.label, description: opt.description, color: group.color, children };
+        return { type: 'branch', id: nodeId, optionId: opt.id, label: opt.label, description: opt.description, color: group.color, children };
     });
 }
 
@@ -116,9 +121,16 @@ export const NodeGroupsPanel: React.FC = () => {
                     onDragStart={(e) => handleDragStart(e, node.commandId)}
                 >
                     <span className="w-3 h-3 shrink-0" />
-                    <div
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: def?.visual?.color || node.color }}
+                    <TemplateIcon
+                        id={node.commandId}
+                        size={10}
+                        className="shrink-0 object-contain"
+                        fallback={
+                            <div
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: def?.visual?.color || node.color }}
+                            />
+                        }
                     />
                     <span className="text-xs text-neutral-300 truncate flex-1">{node.label}</span>
                     {!def && (
@@ -130,6 +142,13 @@ export const NodeGroupsPanel: React.FC = () => {
 
         const isOpen = expanded.has(node.id);
         const leafCount = countLeaves(node);
+        // Картинка по id: для корневой ветки группы — id самой группы (совпадает
+        // с одним из nodeGroups[].id), для промежуточной ветки-опции (шаг внутри
+        // группы, напр. "< (меньше)") — id этой опции в шаблоне (node.optionId,
+        // напр. "opt_lt"). И то, и другое — стабильные id из шаблона, а не
+        // синтетический составной путь узла дерева (node.id).
+        const isGroupNode = nodeGroups.some(g => g.id === node.id);
+        const iconId = isGroupNode ? node.id : node.optionId;
 
         return (
             <div key={node.id}>
@@ -148,7 +167,16 @@ export const NodeGroupsPanel: React.FC = () => {
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: node.color }} />
+                    {iconId ? (
+                        <TemplateIcon
+                            id={iconId}
+                            size={10}
+                            className="shrink-0 object-contain"
+                            fallback={<div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: node.color }} />}
+                        />
+                    ) : (
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: node.color }} />
+                    )}
                     <span className="text-xs font-medium text-neutral-200 truncate flex-1">{node.label}</span>
                     <span
                         className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0"
