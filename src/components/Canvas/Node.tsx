@@ -13,11 +13,15 @@ interface NodeProps {
 }
 
 // Ниже этого масштаба заголовок (12px в мировых единицах) рендерится на экране
-// мельче ~5px — читать всё равно нельзя, поэтому ноду-команду целиком накрывает
-// крупная иконка (semantic zoom). Connections считают координаты пинов чисто
-// геометрически от node.position (см. ConnectionLayer.getPortPosition), а не из
-// реального DOM, поэтому сама разметка ноды (и её высота) не трогается —
-// иконка просто рисуется ПОВЕРХ существующего содержимого, оно остаётся в DOM.
+// мельче ~5px — читать всё равно нельзя, поэтому ноду целиком накрывает крупный
+// заменитель (semantic zoom): у command-ноды — иконка, у data-ноды — её
+// значение увеличенным фиксированным шрифтом (36px в мировых единицах — тоже
+// продолжает уменьшаться вместе с масштабом, просто порог нечитаемости
+// отодвигается дальше; не настоящий scale-инвариантный размер). Connections
+// считают координаты пинов чисто геометрически от node.position (см.
+// ConnectionLayer.getPortPosition), а не из реального DOM, поэтому сама
+// разметка ноды (и её высота) не трогается — замена просто рисуется ПОВЕРХ
+// существующего содержимого, оно остаётся в DOM.
 const ICON_ONLY_SCALE_THRESHOLD = 0.4;
 
 export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
@@ -35,6 +39,25 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
     // пару раз за весь сеанс зума — так что на N нод это НЕ накладывает
     // стоимость "пересчитать всё на каждый тик", которую чинили в MagneticGrid.
     const isIconOnly = useEditorStore((state) => state.scale < ICON_ONLY_SCALE_THRESHOLD);
+    // Подсказка с названием команды под нодой в icon-only режиме: в отличие от
+    // isIconOnly (bool) здесь нужен ЖИВОЙ числовой scale, чтобы "отменить" его
+    // инверсным transform: scale(1/scale) — иначе текст подсказки сжимался бы
+    // вместе с холстом точно так же, как обычный заголовок. Чтобы не тащить
+    // live-scale во ВСЕ N нод на каждый тик колеса (ровно то, от чего ушли в
+    // MagneticGrid), селектор возвращает число ТОЛЬКО для тех нод, которым
+    // подсказка реально нужна прямо сейчас: либо это единственная нода под
+    // курсором, либо (по удержанию ALT — altLabelsVisible, см. Canvas.tsx)
+    // вообще все. Для остальных — стабильный null (Object.is(null, null) не
+    // триггерит ре-рендер). Пока ALT не зажат, это снова максимум одна нода за
+    // тик; с зажатым ALT — все видимые command-ноды, но это разовое намеренное
+    // действие пользователя, а не постоянная фоновая стоимость.
+    const hoverTooltipScale = useEditorStore((state) =>
+        data.type === 'command'
+            && state.scale < ICON_ONLY_SCALE_THRESHOLD
+            && (state.hoveredNodeId === data.id || state.altLabelsVisible)
+            ? state.scale
+            : null
+    );
     const {
         nodeDefinitions, updateNodePosition, updateNodeData, dataTypes,
         beginFieldEdit, commitFieldEdit,
@@ -995,6 +1018,31 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         className="object-contain"
                         fallback={<div className="w-12 h-12 rounded" style={{ backgroundColor: definition.visual?.color || '#555' }} />}
                     />
+                </div>
+            )}
+
+            {hoverTooltipScale !== null && (
+                <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none" style={{ marginTop: 2 }}>
+                    <div
+                        className="px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-700 text-[11px] text-neutral-200 whitespace-nowrap shadow-lg"
+                        style={{ transform: `scale(${1 / hoverTooltipScale})`, transformOrigin: 'top center' }}
+                    >
+                        {data.data?.label || definition.name}
+                    </div>
+                </div>
+            )}
+
+            {isIconOnly && data.type === 'data' && (
+                <div
+                    className="absolute inset-0 z-20 flex items-center justify-center rounded-md pointer-events-none px-2 overflow-hidden"
+                    style={{ backgroundColor: '#262626', border: `2px solid ${definition.visual?.color || '#555'}` }}
+                >
+                    <span
+                        className="font-bold truncate"
+                        style={{ fontSize: 36, lineHeight: 1, color: definition.visual?.color || '#ddd', maxWidth: '100%' }}
+                    >
+                        {data.data?.value || '—'}
+                    </span>
                 </div>
             )}
         </div>

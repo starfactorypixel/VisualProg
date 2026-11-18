@@ -100,6 +100,35 @@ export const Canvas: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // Удержание ALT — подсказки с названием у всех видимых command-нод разом
+    // (Node.tsx: hoverTooltipScale). preventDefault на keydown — иначе одиночный
+    // ALT в некоторых браузерах переключает фокус на меню окна, и keyup до нас
+    // не доходит; на случай, если он всё же не дойдёт (alt-tab из окна), сбрасываем
+    // флаг и по blur окна, чтобы подсказки не "залипали" навсегда.
+    useEffect(() => {
+        const handleAltKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Alt') {
+                e.preventDefault();
+                useEditorStore.getState().setAltLabelsVisible(true);
+            }
+        };
+        const handleAltKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Alt') {
+                useEditorStore.getState().setAltLabelsVisible(false);
+            }
+        };
+        const handleBlur = () => useEditorStore.getState().setAltLabelsVisible(false);
+
+        window.addEventListener('keydown', handleAltKeyDown);
+        window.addEventListener('keyup', handleAltKeyUp);
+        window.addEventListener('blur', handleBlur);
+        return () => {
+            window.removeEventListener('keydown', handleAltKeyDown);
+            window.removeEventListener('keyup', handleAltKeyUp);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, []);
+
     useEffect(() => {
         const handleWindowMouseMove = (e: MouseEvent) => {
             if (isPanning) {

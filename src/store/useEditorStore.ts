@@ -73,6 +73,10 @@ interface EditorStore {
     hoveredType: string | null;
     hoveredNodeId: string | null;
     hoveredSidebarType: string | null;
+    // Удержан ALT — показывает подсказку с названием команды у ВСЕХ видимых
+    // command-нод в icon-only режиме разом (Node.tsx: hoverTooltipScale), а не
+    // только у наведённой (см. Canvas.tsx — keydown/keyup/blur на window).
+    altLabelsVisible: boolean;
 
     // Второй exec-провод в уже занятый вход, если у источника нет своего
     // адресного выхода (см. completeLinking) — ждёт выбора ноды-моста (Goto
@@ -148,6 +152,7 @@ interface EditorStore {
     setHoveredType: (type: string | null) => void;
     setHoveredNodeId: (id: string | null) => void;
     setHoveredSidebarType: (type: string | null) => void;
+    setAltLabelsVisible: (visible: boolean) => void;
 
     toggleMagneticGrid: () => void;
 
@@ -220,6 +225,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     hoveredType: null,
     hoveredNodeId: null,
     hoveredSidebarType: null,
+    altLabelsVisible: false,
 
     magneticGridMode: false,
     magneticGridConfig: DEFAULT_MAGNETIC_GRID,
@@ -256,6 +262,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     setHoveredType: (type) => set({ hoveredType: type }),
     setHoveredNodeId: (id) => set({ hoveredNodeId: id }),
     setHoveredSidebarType: (type) => set({ hoveredSidebarType: type }),
+    // Бьёт мимо изменения, если значение уже такое — иначе keydown-автоповтор
+    // при удержании ALT долбил бы set() (а значит ре-рендер ВСЕХ нод) на каждый
+    // повтор, а не один раз на нажатие.
+    setAltLabelsVisible: (visible) => set((state) => state.altLabelsVisible === visible ? state : { altLabelsVisible: visible }),
 
     selectNode: (id, multi) => set((state) => {
         if (multi) {
