@@ -12,6 +12,14 @@ interface NodeProps {
     onContextMenu?: (e: React.MouseEvent, nodeId: string) => void;
 }
 
+// Ниже этого масштаба заголовок (12px в мировых единицах) рендерится на экране
+// мельче ~5px — читать всё равно нельзя, поэтому ноду-команду целиком накрывает
+// крупная иконка (semantic zoom). Connections считают координаты пинов чисто
+// геометрически от node.position (см. ConnectionLayer.getPortPosition), а не из
+// реального DOM, поэтому сама разметка ноды (и её высота) не трогается —
+// иконка просто рисуется ПОВЕРХ существующего содержимого, оно остаётся в DOM.
+const ICON_ONLY_SCALE_THRESHOLD = 0.4;
+
 export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
     // Нода рендерится в мировых координатах (left/top = data.position), масштаб
     // накладывается CSS-трансформом на общий wrapper в Canvas.tsx — самому
@@ -19,6 +27,14 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
     // здесь каждая из N нод на канвасе перерисовывалась бы на ЛЮБОЕ изменение
     // стора целиком: зум колесом, панорамирование, драг другой ноды в магнитном
     // режиме — хотя их вывод ни от чего из этого не зависит.
+    //
+    // Исключение — isIconOnly ниже: это ОТДЕЛЬНЫЙ селектор на одно bool-значение
+    // (не объект+shallow), поэтому zustand сравнивает его через Object.is и не
+    // триггерит ре-рендер, пока само bool-значение не поменялось. Колесо мыши
+    // меняет state.scale на каждый тик, но isIconOnly флипается самое большее
+    // пару раз за весь сеанс зума — так что на N нод это НЕ накладывает
+    // стоимость "пересчитать всё на каждый тик", которую чинили в MagneticGrid.
+    const isIconOnly = useEditorStore((state) => state.scale < ICON_ONLY_SCALE_THRESHOLD);
     const {
         nodeDefinitions, updateNodePosition, updateNodeData, dataTypes,
         beginFieldEdit, commitFieldEdit,
@@ -966,6 +982,20 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         );
                     })()}
                 </>
+            )}
+
+            {isIconOnly && data.type === 'command' && (
+                <div
+                    className="absolute inset-0 z-20 flex items-center justify-center rounded-md pointer-events-none"
+                    style={{ backgroundColor: '#262626', border: `2px solid ${definition.visual?.color || '#555'}` }}
+                >
+                    <TemplateIcon
+                        id={definition.id}
+                        size={48}
+                        className="object-contain"
+                        fallback={<div className="w-12 h-12 rounded" style={{ backgroundColor: definition.visual?.color || '#555' }} />}
+                    />
+                </div>
             )}
         </div>
     );
