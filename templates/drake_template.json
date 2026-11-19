@@ -50,60 +50,68 @@
             "color": "#10b981",
             "options": [
                 {
+                    "value": "0x00",
+                    "label": "REG_DUMMY - заглушка, не используется"
+                },
+                {
                     "value": "0x01",
-                    "label": "REG_SCRIPT_ID - ID текущего скрипта"
+                    "label": "REG_TRIG_ID - ID скрипта, который запустил текущий"
                 },
                 {
                     "value": "0x02",
-                    "label": "REG_PARAM0 - Параметры, переданные в скрипт"
+                    "label": "REG_NOW_ID - ID текущего скрипта"
                 },
                 {
                     "value": "0x03",
-                    "label": "REG_PARAM1 - Параметры, переданные в скрипт"
+                    "label": "REG_A - Универсальный регистр"
                 },
                 {
                     "value": "0x04",
-                    "label": "REG_PARAM2 - Параметры, переданные в скрипт"
+                    "label": "REG_B - Универсальный регистр"
                 },
                 {
                     "value": "0x05",
-                    "label": "REG_PARAM3 - Параметры, переданные в скрипт"
+                    "label": "REG_C - Универсальный регистр"
                 },
                 {
                     "value": "0x06",
-                    "label": "RA - Универсальный регистр"
+                    "label": "REG_D - Универсальный регистр"
                 },
                 {
                     "value": "0x07",
-                    "label": "RB - Универсальный регистр"
+                    "label": "REG_E - Универсальный регистр"
                 },
                 {
                     "value": "0x08",
-                    "label": "RC - Универсальный регистр"
+                    "label": "REG_F - Универсальный регистр"
                 },
                 {
                     "value": "0x09",
-                    "label": "RD - Универсальный регистр"
+                    "label": "REG_G - Универсальный регистр"
                 },
                 {
                     "value": "0x0A",
-                    "label": "RE - Универсальный регистр"
+                    "label": "REG_H - Универсальный регистр"
                 },
                 {
                     "value": "0x0B",
-                    "label": "RF - Универсальный регистр"
+                    "label": "REG_I - Универсальный регистр"
                 },
                 {
                     "value": "0x0C",
-                    "label": "RG - Универсальный регистр"
+                    "label": "REG_J - Универсальный регистр"
                 },
                 {
                     "value": "0x0D",
-                    "label": "RH - Универсальный регистр"
+                    "label": "REG_K - Универсальный регистр"
                 },
                 {
                     "value": "0x0E",
-                    "label": "RI - Универсальный регистр"
+                    "label": "REG_L - Универсальный регистр"
+                },
+                {
+                    "value": "0x0F",
+                    "label": "REG_M - Универсальный регистр"
                 }
             ]
         },
@@ -501,34 +509,41 @@
         {
             "id": "grp_script_args",
             "label": "Script Args",
-            "description": "Передача параметров при вызове скрипта",
+            "description": "Чтение/запись 8-байтовой памяти аргументов скрипта (по script_id+offset+type) через регистры",
             "color": "#d946ef",
             "steps": [
                 {
-                    "id": "step_arg_type",
-                    "question": "Тип передаваемых данных:",
+                    "id": "step_arg_action",
+                    "question": "Действие:",
                     "options": [
-                        { "id": "opt_arg_val", "label": "Значения (4 байта)" },
-                        { "id": "opt_arg_reg8", "label": "Регистры 8-бит (4 шт.)" },
-                        { "id": "opt_arg_reg32", "label": "Регистр 32-бит" }
+                        { "id": "opt_arg_set", "label": "Записать (Set)" },
+                        { "id": "opt_arg_get", "label": "Прочитать (Get)" }
+                    ]
+                },
+                {
+                    "id": "step_arg_source",
+                    "question": "Источник значения:",
+                    "options": [
+                        { "id": "opt_arg_val", "label": "Константа" },
+                        { "id": "opt_arg_reg", "label": "Регистр" }
                     ]
                 }
             ],
             "nodes": [
                 {
                     "commandId": "cmd_SetScriptArgVal",
-                    "label": "SetScriptArgVal",
-                    "tags": ["opt_arg_val"]
+                    "label": "Set Arg = Val",
+                    "tags": ["opt_arg_set", "opt_arg_val"]
                 },
                 {
-                    "commandId": "cmd_SetScriptArgReg8",
-                    "label": "SetScriptArgReg8",
-                    "tags": ["opt_arg_reg8"]
+                    "commandId": "cmd_SetScriptArgReg",
+                    "label": "Set Arg = Reg",
+                    "tags": ["opt_arg_set", "opt_arg_reg"]
                 },
                 {
-                    "commandId": "cmd_SetScriptArgReg32",
-                    "label": "SetScriptArgReg32",
-                    "tags": ["opt_arg_reg32"]
+                    "commandId": "cmd_GetScriptArgReg",
+                    "label": "Get Arg -> Reg",
+                    "tags": ["opt_arg_get"]
                 }
             ]
         },
@@ -603,10 +618,34 @@
                     "type": "uint8",
                     "dir": "const",
                     "value": 0
+                },
+                {
+                    "name": "d5",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d6",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d7",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
+                },
+                {
+                    "name": "d8",
+                    "type": "uint8",
+                    "dir": "const",
+                    "value": 0
                 }
             ],
             "opcode": "0x01",
-            "length": 6
+            "length": 10
         },
         "cmd_FunctionStart": {
             "name": "Begin",
@@ -722,29 +761,35 @@
             },
             "fields": [
                 {
-                    "name": "ID",
+                    "name": "Script ID",
                     "type": "uint16",
                     "dir": "in",
                     "portId": "op1"
                 },
                 {
-                    "name": "Idx",
-                    "type": "uint8",
+                    "name": "Type",
+                    "type": "enum",
                     "dir": "in",
                     "portId": "op2"
+                },
+                {
+                    "name": "Offset",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op3"
                 },
                 {
                     "name": "Value",
-                    "type": "uint8",
+                    "type": "int32",
                     "dir": "in",
-                    "portId": "op3"
+                    "portId": "op4"
                 }
             ],
             "opcode": "0x03",
-            "length": 5
+            "length": 9
         },
-        "cmd_SetScriptArgReg8": {
-            "name": "SetScriptArgReg8",
+        "cmd_SetScriptArgReg": {
+            "name": "SetScriptArgReg",
             "nodeType": "function",
             "visual": {
                 "color": "#f59e0b"
@@ -755,53 +800,71 @@
             },
             "fields": [
                 {
-                    "name": "ID",
+                    "name": "Script ID",
                     "type": "uint16",
                     "dir": "in",
                     "portId": "op1"
                 },
                 {
-                    "name": "Idx",
-                    "type": "uint8",
+                    "name": "Type",
+                    "type": "enum",
                     "dir": "in",
                     "portId": "op2"
                 },
                 {
+                    "name": "Offset",
+                    "type": "uint8",
+                    "dir": "in",
+                    "portId": "op3"
+                },
+                {
                     "name": "Register",
                     "type": "reg",
+                    "dir": "in",
+                    "portId": "op4"
+                }
+            ],
+            "opcode": "0x04",
+            "length": 6
+        },
+        "cmd_GetScriptArgReg": {
+            "name": "GetScriptArgReg",
+            "nodeType": "function",
+            "visual": {
+                "color": "#f59e0b"
+            },
+            "control": {
+                "in": "exec_in",
+                "out": "exec_out"
+            },
+            "fields": [
+                {
+                    "name": "Result (reg)",
+                    "type": "reg",
+                    "dir": "out",
+                    "portId": "res"
+                },
+                {
+                    "name": "Script ID",
+                    "type": "uint16",
+                    "dir": "in",
+                    "portId": "op1"
+                },
+                {
+                    "name": "Type",
+                    "type": "enum",
+                    "dir": "in",
+                    "portId": "op2"
+                },
+                {
+                    "name": "Offset",
+                    "type": "uint8",
                     "dir": "in",
                     "portId": "op3"
                 }
             ],
-            "opcode": "0x04",
-            "length": 5
-        },
-        "cmd_SetScriptArgReg32": {
-            "name": "SetScriptArgReg32",
-            "nodeType": "function",
-            "visual": {
-                "color": "#f59e0b"
-            },
-            "control": {
-                "in": "exec_in",
-                "out": "exec_out"
-            },
-            "fields": [
-                {
-                    "name": "ID",
-                    "type": "uint16",
-                    "dir": "in",
-                    "portId": "op1"
-                },
-                {
-                    "name": "Register",
-                    "type": "reg",
-                    "dir": "in",
-                    "portId": "op2"
-                }
-            ],
             "opcode": "0x05",
-            "length": 4
+            "length": 6
         },
         "cmd_IfRegValEqu": {
             "name": "If (Reg = Val)",

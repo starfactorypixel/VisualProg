@@ -11,6 +11,16 @@ import { BridgePicker } from '../UI/BridgePicker';
 
 export const Canvas: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
+    // Обёртка нод двигается/масштабируется через один CSS-transform (см. ниже,
+    // style={{transform: translate(...) scale(...)}}) на will-change-transform
+    // слое — это и есть причина размытого текста во время/сразу после зума:
+    // браузер ради 60fps на время жеста просто скейлит уже готовый битмап этого
+    // слоя на GPU вместо повторной растеризации текста под новый масштаб, и
+    // сам не торопится перерастрировать после остановки (will-change держит
+    // слой в "раскомпозиченном" состоянии специально, чтобы не перерисовывать
+    // его лишний раз). Любое взаимодействие с нодой (драг меняет left/top)
+    // форсирует paint именно той ноды — отсюда и "дёрнул — стало чётко".
+    const nodesWrapperRef = useRef<HTMLDivElement>(null);
     // Селектор+shallow — иначе Canvas (и, через него, список нод/связей)
     // перерисовывается на любое изменение стора, включая draggingState,
     // который во время драга в магнитном режиме меняется на каждый тик.
@@ -128,6 +138,48 @@ export const Canvas: React.FC = () => {
             window.removeEventListener('blur', handleBlur);
         };
     }, []);
+
+    // Размытый текст нод во время/сразу после зума колесом (см. комментарий у
+    // nodesWrapperRef выше) — через SCALE_SETTLE_MS после последнего изменения
+    // scale форсируем браузеру свежий paint того же слоя на текущем масштабе.
+    // Снять/вернуть will-change — стандартный приём для этого: пока он снят,
+    // слой на мгновение перестаёт быть "GPU-only" и перерисовывается обычным
+    // путём.
+    //
+    // ВАЖНО (баг прошлой версии этого фикса): offsetHeight форсирует только
+    // layout, а не paint — paint браузер ВСЕГДА откладывает на следующий кадр,
+    // синхронно его вызвать нельзя в принципе. Если переключать willChange
+    // 'auto' → 'transform' в одной и той же синхронной функции, оба присваивания
+    // схлопывались в одну JS-задачу БЕЗ единого реального кадра между ними —
+    // слой так и не перерисовывался, а просто терял и тут же заново получал
+    // composited-промоушен. Видимый эффект был обратным ожидаемому: уже
+    // закэшированные (видимые) тайлы так и оставались размытыми, а свежие
+    // тайлы, впервые попавшие в кадр при панорамировании (которым НЕЧЕГО было
+    // кэшировать), рисовались с нуля и потому выглядели чёткими — отсюда
+    // "четкие за холстом, размытые на виду". Двойной requestAnimationFrame —
+    // стандартный способ дождаться, что браузер реально отрисовал кадр с
+    // willChange:'auto', и только потом вернуть composited-слой обратно.
+    useEffect(() => {
+        const SCALE_SETTLE_MS = 150;
+        let raf1 = 0;
+        let raf2 = 0;
+        const timeoutId = setTimeout(() => {
+            const el = nodesWrapperRef.current;
+            if (!el) return;
+            el.style.willChange = 'auto';
+            raf1 = requestAnimationFrame(() => {
+                raf2 = requestAnimationFrame(() => {
+                    if (nodesWrapperRef.current) nodesWrapperRef.current.style.willChange = 'transform';
+                });
+            });
+        }, SCALE_SETTLE_MS);
+
+        return () => {
+            clearTimeout(timeoutId);
+            cancelAnimationFrame(raf1);
+            cancelAnimationFrame(raf2);
+        };
+    }, [scale]);
 
     useEffect(() => {
         const handleWindowMouseMove = (e: MouseEvent) => {
@@ -253,6 +305,7 @@ export const Canvas: React.FC = () => {
                 )}
 
                 <div
+                    ref={nodesWrapperRef}
                     className="absolute top-0 left-0 origin-top-left will-change-transform"
                     style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})` }}
                 >
