@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { findAddressBridgeCommands } from '../../utils/TemplateSchema';
+import { useTranslate } from '../../i18n';
 
 // Показывается вместо прямого соединения, когда второй exec-провод пытается
 // войти в уже занятый вход, а источник не умеет сам указать адрес (см.
@@ -8,7 +9,8 @@ import { findAddressBridgeCommands } from '../../utils/TemplateSchema';
 // шаблона с собственным адресным выходом (Goto и т.п.), отобранные по
 // структуре (findAddressBridgeCommands), а не по жёстко заданному имени.
 export const BridgePicker: React.FC = () => {
-    const { pendingBridge, activeTemplate, nodeDefinitions, resolveBridge, cancelBridge } = useEditorStore();
+    const t = useTranslate();
+    const { pendingBridge, activeTemplate, nodeDefinitions, translations, resolveBridge, cancelBridge } = useEditorStore();
     const [filter, setFilter] = useState('');
     const ref = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +41,10 @@ export const BridgePicker: React.FC = () => {
     if (!pendingBridge) return null;
 
     const candidates = findAddressBridgeCommands(activeTemplate)
-        .map(({ commandId }) => ({ commandId, name: nodeDefinitions.find(d => d.id === commandId)?.name ?? commandId }))
+        .map(({ commandId }) => {
+            const baseName = nodeDefinitions.find(d => d.id === commandId)?.name ?? commandId;
+            return { commandId, name: translations[commandId] ?? baseName };
+        })
         .filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
 
     return (
@@ -56,12 +61,12 @@ export const BridgePicker: React.FC = () => {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && candidates.length > 0) resolveBridge(candidates[0].commandId);
                     }}
-                    placeholder="Вход занят — найти переход..."
+                    placeholder={t('Input is occupied — find a jump...')}
                     className="w-full bg-neutral-900 text-neutral-200 text-sm px-2 py-1 rounded outline-none"
                 />
             </div>
             {candidates.length === 0 && (
-                <div className="px-3 py-2 text-sm text-neutral-500">Ничего не найдено</div>
+                <div className="px-3 py-2 text-sm text-neutral-500">{t('Nothing found')}</div>
             )}
             {candidates.map(c => (
                 <div

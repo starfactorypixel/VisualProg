@@ -2,6 +2,7 @@
     "id": "DrakeScript",
     "name": "script for Pixel (.drk)",
     "extension": "drk",
+    "languages": ["en"],
     "boilerplate": {
         "start": "",
         "end": ""

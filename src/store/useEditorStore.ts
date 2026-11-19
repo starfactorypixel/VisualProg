@@ -4,6 +4,7 @@ import { FunctionSignature } from '../types/function';
 import { RawTemplate, DataTypeDef, NodeGroupDef, compileNodeDefinitions, compileDataTypes, compileNodeGroups, findAddressBridgeCommands } from '../utils/TemplateSchema';
 import { resolveNodeDefinition } from '../utils/functionSignature';
 import { genId } from '../utils/id';
+import { translateUi } from '../i18n';
 
 type DataType = DataTypeDef;
 
@@ -47,6 +48,23 @@ interface EditorStore {
     dataTypes: DataType[];
     nodeGroups: NodeGroupDef[];           // группы для вкладки GRP, компилируются из activeTemplate.nodeGroups
     activeTemplate: RawTemplate | null;  // текущий загруженный шаблон (drake/c/asm/пользовательский) — палитра + правила экспорта
+
+    // Перевод палитры (name/label команд, групп, подгрупп) — чисто view-слой:
+    // влияет только на то, что РИСУЕТСЯ, никогда не попадает в data.label ноды
+    // и никогда не попадает в сохранённый файл проекта. Сам выбранный КОД языка
+    // (activeLanguage) переживает перезагрузку страницы через localStorage (см.
+    // UI_LANGUAGE_STORAGE_KEY) — а вот словари translations/uiTranslations нет,
+    // они каждый раз перезапрашиваются заново по сохранённому коду.
+    activeLanguage: string | null;       // null = "Original" (как в самом шаблоне)
+    translations: Record<string, string>; // id команды/группы/опции -> переведённый текст
+
+    // Перевод ИНТЕРФЕЙСА (меню, вкладки, кнопки, подсказки, alert/confirm) —
+    // отдельно от translations выше, т.к. ключ тут не стабильный id, а сам
+    // исходный текст (см. src/i18n.ts: t(text) = uiTranslations[text] ?? text).
+    // Файл не привязан к шаблону — public/lang/<activeLanguage>.json, грузится
+    // той же сменой языка, но независимо (нет файла — молча остаются дефолтные
+    // строки, в отличие от translations, где это ошибка).
+    uiTranslations: Record<string, string>;
 
     // Сигнатуры пинов функций (cmd_function), подгружаются лениво по имени
     // файла — ключ "файл не загружался" отсутствует, null = "загружен, пинов нет".
@@ -149,6 +167,10 @@ interface EditorStore {
 
     setData: (data: { nodes: NodeInstance[], connections: Connection[] }, signature?: FunctionSignature, filePath?: string) => void;
     loadTemplate: (template: RawTemplate) => void;  // переключает палитру нод + типы данных на другой язык/шаблон
+    // code=null — вернуться к оригинальным name/label из шаблона. Иначе грузит
+    // templates/<id шаблона>/lang_<code>.json; при ошибке показывает alert и
+    // оставляет активный язык как был (не затирает рабочий перевод мусором).
+    setActiveLanguage: (code: string | null) => Promise<void>;
     setHoveredType: (type: string | null) => void;
     setHoveredNodeId: (id: string | null) => void;
     setHoveredSidebarType: (type: string | null) => void;
@@ -190,6 +212,13 @@ const DEFAULT_MAGNETIC_GRID: MagneticGridConfig = {
 
 const HISTORY_LIMIT = 50;
 
+// Единственное, что переживает перезагрузку страницы для языка интерфейса —
+// сам выбранный код. Словари (translations/uiTranslations) намеренно не кэшируем
+// здесь: при восстановлении они перезапрашиваются заново (см. App.tsx), чтобы
+// правки файлов lang_*.json на диске подхватывались, как и при обычном выборе
+// языка из меню.
+export const UI_LANGUAGE_STORAGE_KEY = 'ui_language_v1';
+
 // Вспомогательная функция для создания снимка состояния
 const createSnapshot = (state: EditorStore): EditorStateSnapshot => {
     // Создаём глубокую копию через structuredClone или JSON
@@ -216,6 +245,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     dataTypes: [],
     nodeGroups: [],
     activeTemplate: null,
+    activeLanguage: null,
+    translations: {},
+    uiTranslations: {},
     functionSignatures: {},
     currentFilePath: null,
     currentFileSignature: null,
@@ -916,7 +948,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                 if (!sourceHasOwnAddress) {
                     const candidates = findAddressBridgeCommands(state.activeTemplate);
                     if (candidates.length === 0) {
-                        alert(`Нельзя соединить: вход "${targetNode.definitionId}" уже занят другим переходом, а эта нода не умеет указывать адрес напрямую. В шаблоне нет команды безусловного перехода (Goto) для вставки моста.`);
+                        alert(translateUi('Cannot connect: input "{0}" is already occupied by another jump, and this node cannot address a target directly. The template has no unconditional jump command (Goto) to insert as a bridge.', targetNode.definitionId));
                         return { ...state, selectedPort: null };
                     }
                     return {
@@ -1143,7 +1175,62 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         dataTypes: compileDataTypes(template),
         nodeGroups: compileNodeGroups(template),
         activeTemplate: template,
+        // Словарь перевода КОМАНД привязан к конкретному шаблону (ключи — его
+        // собственные cmd_*/grp_*/opt_* id) — для нового шаблона он гарантированно
+        // неактуален. activeLanguage и uiTranslations НЕ трогаем: это выбор
+        // пользователя (и перевод интерфейса) уровня сессии, а не шаблона — иначе
+        // загрузка другого шаблона молча откатывала бы язык всего интерфейса на
+        // Original. Если новый шаблон тоже предлагает перевод под activeLanguage,
+        // пользователь просто переизберёт его в меню Language.
+        translations: {},
     }),
+
+    setActiveLanguage: async (code) => {
+        if (!code) {
+            localStorage.removeItem(UI_LANGUAGE_STORAGE_KEY);
+            set({ activeLanguage: null, translations: {}, uiTranslations: {} });
+            return;
+        }
+        localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, code);
+
+        // UI-перевод — общий на всё приложение, не привязан к шаблону, и
+        // необязателен (нет декларированного списка языков, в отличие от
+        // template.languages) — молча остаёмся на дефолтных строках, если
+        // public/lang/<code>.json не существует.
+        try {
+            const res = await fetch(`/lang/${encodeURIComponent(code)}.json`, { cache: 'no-store' });
+            set({ uiTranslations: res.ok ? await res.json() : {} });
+        } catch {
+            set({ uiTranslations: {} });
+        }
+
+        // Перевод КОМАНД шаблона — отдельный, более строгий контракт: у шаблона
+        // есть декларированный список language.languages (см. RawTemplate), и
+        // если code в нём не числится, этот язык просто не предназначен для
+        // содержимого шаблона (напр. "ru" может существовать только как перевод
+        // интерфейса) — тихо пропускаем фетч, это не ошибка. Если же code ЕСТЬ
+        // в списке, а файл всё равно не загрузился — это реальная проблема
+        // конфигурации шаблона, и о ней стоит сообщить.
+        const template = get().activeTemplate;
+        if (!template || !template.languages?.includes(code)) {
+            set({ activeLanguage: code, translations: {} });
+            return;
+        }
+        try {
+            // no-store — тот же резон, что и у loadFunctionSignature: словарь
+            // перевода можно поправить на диске прямо во время работы редактора.
+            const res = await fetch(`/templates/${encodeURIComponent(template.id)}/lang_${encodeURIComponent(code)}.json`, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            set({ activeLanguage: code, translations: data });
+        } catch (e) {
+            console.error(`[translations] Failed to load lang_${code}.json:`, e);
+            alert(translateUi('Failed to load the "{0}" translation — check the file templates/{1}/lang_{0}.json.', code, template.id));
+            // Выбор всё равно фиксируем (как и с UI-переводом выше) — иначе меню
+            // откатится на "Original", хотя UI-словарь мог загрузиться успешно.
+            set({ activeLanguage: code });
+        }
+    },
 
     // Лениво подгружает и кэширует сигнатуру пинов функции по пути к файлу —
     // используется Node.tsx/ConnectionLayer.tsx, чтобы нода вызова cmd_function

@@ -11,6 +11,7 @@ import { slugifyPinName, applyPinEdits } from '../../utils/functionSignature';
 import { PinDef, PinDirection, FunctionFileData } from '../../types/function';
 import { useProjectDirectory } from './useProjectDirectory';
 import { FunctionConstructor, PIN_DIRECTIONS } from './FunctionConstructor';
+import { useTranslate } from '../../i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ const IconX = () => (
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const FunctionsPanel: React.FC = () => {
+    const t = useTranslate();
     const [entries, setEntries] = useState<FunctionEntry[]>(loadLocalRegistry);
     const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
     const [diskStatus, setDiskStatus] = useState<DiskStatus>(isFileSystemAccessSupported() ? 'disconnected' : 'unsupported');
@@ -209,11 +211,11 @@ export const FunctionsPanel: React.FC = () => {
             try {
                 const data = JSON.parse(ev.target?.result as string);
                 if (!Array.isArray(data?.functions)) throw new Error('expected { functions: [] }');
-                if (confirm(`Заменить текущий список (${entries.length}) импортированным (${data.functions.length})?`)) {
+                if (confirm(t('Replace the current list ({0}) with the imported one ({1})?', entries.length, data.functions.length))) {
                     persist(data.functions);
                 }
             } catch (err) {
-                alert('Не удалось прочитать файл: ' + (err as Error).message);
+                alert(t('Failed to read file: {0}', (err as Error).message));
             }
         };
         reader.readAsText(file);
@@ -300,7 +302,7 @@ export const FunctionsPanel: React.FC = () => {
         if (!currentEntry) return;
 
         const newFile = (editDraft.file || currentEntry.file).trim();
-        if (!newFile) { setEditError('Укажите путь к файлу'); return; }
+        if (!newFile) { setEditError(t('Specify a file path')); return; }
 
         const seenIds = new Set<string>();
         const pinDefs: PinDef[] = editPins.map((p, i) => {
@@ -319,10 +321,10 @@ export const FunctionsPanel: React.FC = () => {
             let fileData: FunctionFileData;
             try {
                 const res = await fetch(`/${currentEntry.file}`, { cache: 'no-store' });
-                if (!res.ok) { setEditError(`Не удалось прочитать ${currentEntry.file} перед сохранением — тело функции не тронуто`); return; }
+                if (!res.ok) { setEditError(t('Failed to read {0} before saving — function body left untouched', currentEntry.file)); return; }
                 fileData = await res.json();
             } catch {
-                setEditError(`Не удалось прочитать ${currentEntry.file} перед сохранением — тело функции не тронуто`);
+                setEditError(t('Failed to read {0} before saving — function body left untouched', currentEntry.file));
                 return;
             }
 
@@ -332,19 +334,19 @@ export const FunctionsPanel: React.FC = () => {
             if (projectDirStatus !== 'connected') {
                 if (projectDirStatus === 'needs-permission') {
                     const ok = await reconnectProjectDir();
-                    if (!ok) { setEditError('Нет доступа к папке проекта — нажмите «Сохранить» ещё раз, чтобы переподключить'); return; }
+                    if (!ok) { setEditError(t('No access to the project folder — click "Save" again to reconnect')); return; }
                 } else {
                     dirHandle = await connectProjectDir();
-                    if (!dirHandle) { setEditError('Нужно выбрать папку проекта, чтобы сохранить пины на диске'); return; }
+                    if (!dirHandle) { setEditError(t('You need to select a project folder to save pins to disk')); return; }
                 }
             }
-            if (!dirHandle) { setEditError('Нет доступа к папке проекта'); return; }
+            if (!dirHandle) { setEditError(t('No access to the project folder')); return; }
 
             const fileHandle = await getOrCreateFileInDirectory(dirHandle, newFile);
-            if (!fileHandle) { setEditError('Не удалось открыть файл по этому пути'); return; }
+            if (!fileHandle) { setEditError(t('Failed to open file at this path')); return; }
 
             const ok = await writeJsonToHandle(fileHandle, updatedFile);
-            if (!ok) { setEditError('Не удалось записать файл'); return; }
+            if (!ok) { setEditError(t('Failed to write file')); return; }
 
             // Обновляем сигнатуру в сторе немедленно — иначе уже открытые ноды
             // вызова этой функции показывали бы старые порты до перезагрузки
@@ -423,7 +425,7 @@ export const FunctionsPanel: React.FC = () => {
         if (!handle) return;
         const data = await readJsonFromHandle<{ nodes?: unknown[]; connections?: unknown[] }>(handle);
         if (!data?.nodes || !data?.connections) {
-            alert('Файл не похож на функцию — ожидается { nodes, connections }');
+            alert(t('File doesn\'t look like a function — expected { nodes, connections }'));
             return;
         }
         // Путь, который сможет найти fetch-based "Открыть"/экспорт кода, можно
@@ -463,7 +465,7 @@ export const FunctionsPanel: React.FC = () => {
                     <input
                         ref={searchRef}
                         type="text"
-                        placeholder="Поиск функций..."
+                        placeholder={t('Search functions...')}
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
                         onMouseDown={e => e.stopPropagation()}
@@ -485,7 +487,7 @@ export const FunctionsPanel: React.FC = () => {
 
                 {filtered.length === 0 && !isAdding && (
                     <div className="text-center py-8 text-neutral-600 text-xs italic">
-                        {query ? 'Ничего не найдено' : 'Нет функций — добавьте первую'}
+                        {query ? t('Nothing found') : t('No functions — add the first one')}
                     </div>
                 )}
 
@@ -508,7 +510,7 @@ export const FunctionsPanel: React.FC = () => {
                                 /* ── Edit form ── */
                                 <div className="p-2 space-y-1.5" onMouseDown={e => e.stopPropagation()}>
                                     <div>
-                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Название</label>
+                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Name')}</label>
                                         <input
                                             autoFocus
                                             className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-200 focus:outline-none focus:border-purple-500"
@@ -518,7 +520,7 @@ export const FunctionsPanel: React.FC = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Файл</label>
+                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('File')}</label>
                                         <input
                                             className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-400 font-mono focus:outline-none focus:border-purple-500"
                                             value={editDraft.file || ''}
@@ -528,21 +530,21 @@ export const FunctionsPanel: React.FC = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Описание</label>
+                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Description')}</label>
                                         <textarea
                                             className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-300 focus:outline-none focus:border-purple-500 resize-none"
                                             rows={2}
                                             value={editDraft.description || ''}
                                             onChange={e => setEditDraft(d => ({ ...d, description: e.target.value }))}
                                             onMouseDown={e => e.stopPropagation()}
-                                            placeholder="Описание функции..."
+                                            placeholder={t('Function description...')}
                                         />
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Пины</label>
+                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Pins')}</label>
                                         {editPinsLoading && (
-                                            <p className="text-[10px] text-neutral-600 italic">Загрузка пинов…</p>
+                                            <p className="text-[10px] text-neutral-600 italic">{t('Loading pins…')}</p>
                                         )}
                                         {!editPinsLoading && editPins.map((pin, i) => (
                                             <div key={pin.id ?? `new_${i}`} className="flex items-center gap-1">
@@ -551,7 +553,7 @@ export const FunctionsPanel: React.FC = () => {
                                                     value={pin.name}
                                                     onChange={e => updateEditPin(i, { name: e.target.value })}
                                                     onMouseDown={e => e.stopPropagation()}
-                                                    placeholder="Имя"
+                                                    placeholder={t('Name')}
                                                 />
                                                 <select
                                                     className="bg-neutral-900 border border-neutral-700 rounded px-1 py-1 text-[11px] text-neutral-200 focus:outline-none focus:border-purple-500"
@@ -573,7 +575,7 @@ export const FunctionsPanel: React.FC = () => {
                                                     className="shrink-0 w-4 text-center text-neutral-500 hover:text-red-400 text-sm leading-none"
                                                     onClick={() => removeEditPin(i)}
                                                     onMouseDown={e => e.stopPropagation()}
-                                                    title="Удалить пин"
+                                                    title={t('Remove pin')}
                                                 >
                                                     ×
                                                 </button>
@@ -584,7 +586,7 @@ export const FunctionsPanel: React.FC = () => {
                                                 className="w-full py-1 rounded border border-dashed border-neutral-700 hover:border-purple-500 text-neutral-500 hover:text-purple-400 text-[11px] transition-colors"
                                                 onClick={addEditPin}
                                             >
-                                                + Добавить пин
+                                                + {t('Add pin')}
                                             </button>
                                         )}
                                     </div>
@@ -597,13 +599,13 @@ export const FunctionsPanel: React.FC = () => {
                                             onClick={commitEdit}
                                             disabled={isSavingEdit || editPinsLoading}
                                         >
-                                            <IconCheck /> {isSavingEdit ? 'Сохранение…' : 'Сохранить'}
+                                            <IconCheck /> {isSavingEdit ? t('Saving…') : t('Save')}
                                         </button>
                                         <button
                                             className="flex items-center gap-1 px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-[11px] transition-colors"
                                             onClick={cancelEdit}
                                         >
-                                            <IconX /> Отмена
+                                            <IconX /> {t('Cancel')}
                                         </button>
                                         <button
                                             className="flex items-center gap-1 ml-auto px-2 py-1 rounded bg-neutral-900 hover:bg-red-900/40 text-neutral-500 hover:text-red-400 text-[11px] transition-colors"
@@ -634,7 +636,7 @@ export const FunctionsPanel: React.FC = () => {
                                     </div>
                                     <button
                                         className="shrink-0 mt-0.5 text-neutral-600 hover:text-purple-400 transition-colors p-0.5 rounded"
-                                        title="Редактировать"
+                                        title={t('Edit')}
                                         onClick={e => { e.stopPropagation(); startEdit(entry); }}
                                         onMouseDown={e => e.stopPropagation()}
                                     >
@@ -650,10 +652,10 @@ export const FunctionsPanel: React.FC = () => {
                 {isAdding && (
                     <div className="rounded border border-purple-500/60 bg-neutral-800 p-2 space-y-1.5">
                         <p className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">
-                            Добавить вручную
+                            {t('Add manually')}
                         </p>
                         <div>
-                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Файл *</label>
+                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('File *')}</label>
                             <input
                                 autoFocus
                                 className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-400 font-mono focus:outline-none focus:border-purple-500"
@@ -664,24 +666,24 @@ export const FunctionsPanel: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Название</label>
+                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Name')}</label>
                             <input
                                 className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-200 focus:outline-none focus:border-purple-500"
                                 value={newDraft.name || ''}
                                 onChange={e => setNewDraft(d => ({ ...d, name: e.target.value }))}
                                 onMouseDown={e => e.stopPropagation()}
-                                placeholder="Название функции"
+                                placeholder={t('Function name')}
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Описание</label>
+                            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Description')}</label>
                             <textarea
                                 className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-300 focus:outline-none focus:border-purple-500 resize-none"
                                 rows={2}
                                 value={newDraft.description || ''}
                                 onChange={e => setNewDraft(d => ({ ...d, description: e.target.value }))}
                                 onMouseDown={e => e.stopPropagation()}
-                                placeholder="Описание..."
+                                placeholder={t('Description...')}
                             />
                         </div>
                         <div className="flex gap-1 pt-0.5">
@@ -695,13 +697,13 @@ export const FunctionsPanel: React.FC = () => {
                                 onClick={commitAdd}
                                 disabled={!newDraft.file?.trim()}
                             >
-                                <IconCheck /> Добавить
+                                <IconCheck /> {t('Add')}
                             </button>
                             <button
                                 className="flex items-center gap-1 px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-[11px] transition-colors"
                                 onClick={cancelAdd}
                             >
-                                <IconX /> Отмена
+                                <IconX /> {t('Cancel')}
                             </button>
                         </div>
                     </div>
@@ -719,22 +721,22 @@ export const FunctionsPanel: React.FC = () => {
                     <span
                         className="text-[10px] text-neutral-600 truncate"
                         title={
-                            diskStatus === 'connected' ? `Сохраняется напрямую в файл: ${fileHandle?.name}`
-                            : diskStatus === 'needs-permission' ? 'Браузер сбросил доступ к файлу после перезапуска — нужно подтвердить ещё раз'
-                            : diskStatus === 'unsupported' ? 'Этот браузер не поддерживает прямую запись на диск — используйте Экспорт/Импорт'
-                            : 'Хранится только в этом браузере — подключите файл для сохранения на диске'
+                            diskStatus === 'connected' ? t('Saved directly to file: {0}', fileHandle?.name || '')
+                            : diskStatus === 'needs-permission' ? t('Browser revoked file access after restart — please reconfirm')
+                            : diskStatus === 'unsupported' ? t('This browser doesn\'t support direct disk writes — use Export/Import')
+                            : t('Stored only in this browser — connect a file to save to disk')
                         }
                     >
-                        {entries.length} функц{entries.length === 1 ? 'ия' : entries.length < 5 ? 'ии' : 'ий'}
+                        {t(entries.length === 1 ? '{0} function' : '{0} functions', entries.length)}
                         {' · '}
                         <span className={clsx(
                             diskStatus === 'connected' && 'text-green-600',
                             diskStatus === 'needs-permission' && 'text-yellow-600',
                             (diskStatus === 'disconnected' || diskStatus === 'unsupported') && 'text-neutral-600'
                         )}>
-                            {diskStatus === 'connected' && `файл: ${fileHandle?.name}`}
-                            {diskStatus === 'needs-permission' && 'доступ сброшен'}
-                            {(diskStatus === 'disconnected' || diskStatus === 'unsupported') && 'только в браузере'}
+                            {diskStatus === 'connected' && t('file: {0}', fileHandle?.name || '')}
+                            {diskStatus === 'needs-permission' && t('access revoked')}
+                            {(diskStatus === 'disconnected' || diskStatus === 'unsupported') && t('browser only')}
                         </span>
                     </span>
 
@@ -743,16 +745,16 @@ export const FunctionsPanel: React.FC = () => {
                             <button
                                 className="px-1.5 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-400 text-[10px] transition-colors"
                                 onClick={connectExisting}
-                                title="Выбрать существующий JSON-файл на диске"
+                                title={t('Select an existing JSON file on disk')}
                             >
-                                Подключить
+                                {t('Connect')}
                             </button>
                             <button
                                 className="px-1.5 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-400 text-[10px] transition-colors"
                                 onClick={connectNew}
-                                title="Создать новый JSON-файл на диске"
+                                title={t('Create a new JSON file on disk')}
                             >
-                                Создать
+                                {t('Create')}
                             </button>
                         </div>
                     )}
@@ -761,7 +763,7 @@ export const FunctionsPanel: React.FC = () => {
                             className="px-1.5 py-0.5 rounded bg-yellow-900/40 hover:bg-yellow-900/60 border border-yellow-700/50 text-yellow-400 text-[10px] transition-colors shrink-0"
                             onClick={reconnect}
                         >
-                            Переподключить
+                            {t('Reconnect')}
                         </button>
                     )}
                 </div>
@@ -770,16 +772,16 @@ export const FunctionsPanel: React.FC = () => {
                     <button
                         className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-400 text-[10px] transition-colors"
                         onClick={handleExport}
-                        title="Скачать текущий список как JSON-файл"
+                        title={t('Download the current list as a JSON file')}
                     >
-                        Экспорт
+                        {t('Export')}
                     </button>
                     <button
                         className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-400 text-[10px] transition-colors"
                         onClick={() => importInputRef.current?.click()}
-                        title="Загрузить список из JSON-файла"
+                        title={t('Load list from JSON file')}
                     >
-                        Импорт
+                        {t('Import')}
                     </button>
                     <input ref={importInputRef} type="file" accept=".json" className="hidden" onChange={handleImportFile} />
                 </div>
@@ -789,24 +791,24 @@ export const FunctionsPanel: React.FC = () => {
                         className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
                         onClick={startAdd}
                         disabled={isAdding}
-                        title="Зарегистрировать функцию по пути к файлу вручную"
+                        title={t('Register a function by file path manually')}
                     >
-                        <IconPlus /> Вручную
+                        <IconPlus /> {t('Manually')}
                     </button>
                     <button
                         className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
                         onClick={startConstruct}
                         disabled={isConstructing}
-                        title="Задать пины (in/out/inout) и создать новый файл функции"
+                        title={t('Define pins (in/out/inout) and create a new function file')}
                     >
-                        <IconPlus /> Конструктор
+                        <IconPlus /> {t('Constructor')}
                     </button>
                     <button
                         className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-purple-500 text-neutral-300 text-[11px] transition-all"
                         onClick={handleAddFromDisk}
-                        title="Выбрать уже существующий файл функции на диске"
+                        title={t('Select an existing function file on disk')}
                     >
-                        <IconPlus /> С диска
+                        <IconPlus /> {t('From disk')}
                     </button>
                 </div>
             </div>

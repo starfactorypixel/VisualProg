@@ -6,6 +6,7 @@ import { shallow } from 'zustand/shallow';
 import clsx from 'clsx';
 import { Lock, Unlock } from 'lucide-react';
 import { TemplateIcon } from '../UI/TemplateIcon';
+import { useTranslate } from '../../i18n';
 
 interface NodeProps {
     data: NodeInstance;
@@ -25,6 +26,7 @@ interface NodeProps {
 const ICON_ONLY_SCALE_THRESHOLD = 0.4;
 
 export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
+    const t = useTranslate();
     // Нода рендерится в мировых координатах (left/top = data.position), масштаб
     // накладывается CSS-трансформом на общий wrapper в Canvas.tsx — самому
     // компоненту scale/pan/draggingState и т.п. не нужны. Без селектора+shallow
@@ -63,7 +65,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
         beginFieldEdit, commitFieldEdit,
         hoveredType, hoveredNodeId, connections, setHoveredNodeId,
         selectedNodeIds, selectNode, selectedPort,
-        functionSignatures, loadFunctionSignature
+        functionSignatures, loadFunctionSignature, translations
     } = useEditorStore((state) => ({
         nodeDefinitions: state.nodeDefinitions,
         updateNodePosition: state.updateNodePosition,
@@ -79,6 +81,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
         selectNode: state.selectNode,
         selectedPort: state.selectedPort,
         functionSignatures: state.functionSignatures,
+        translations: state.translations,
         loadFunctionSignature: state.loadFunctionSignature,
     }), shallow);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -120,6 +123,12 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
     const [title, setTitle] = useState(data.data?.label || definition?.name || '');
 
     if (!definition) return null;
+
+    // Перевод — чисто для отображения; title/data.label (переименование ноды)
+    // всегда остаются завязаны на оригинальный definition.name, иначе смена
+    // языка молча "запекла" бы переведённый текст в сохранённые данные ноды
+    // при следующем ренейме.
+    const displayName = translations[definition.id] ?? definition.name;
 
     const isHoveredTypeMatch = hoveredType && (
         (data.type === 'data' && data.definitionId === hoveredType) ||
@@ -482,12 +491,12 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         {data.type === 'command' && (
                             <TemplateIcon id={definition.id} size={16} className="shrink-0 object-contain" />
                         )}
-                        <span className="font-semibold text-neutral-200 capitalize truncate flex-1" title="Double click to rename">
-                            {data.data?.label || definition.name}
+                        <span className="font-semibold text-neutral-200 capitalize truncate flex-1" title={t('Double click to rename')}>
+                            {data.data?.label || displayName}
                         </span>
                         {data.data?.label && data.data.label !== definition.name && (
                             <span className="text-[10px] text-neutral-400 font-normal shrink-0">
-                                ({definition.name})
+                                ({displayName})
                             </span>
                         )}
                         {(data.type === 'data' || data.definitionId === 'cmd_function') && (
@@ -498,7 +507,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                     updateNodeData(data.id, { locked: !data.data.locked });
                                 }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                title={data.data.locked ? "Unlock edits" : "Lock edits"}
+                                title={data.data.locked ? t("Unlock edits") : t("Lock edits")}
                             >
                                 {data.data.locked ? (
                                     <Lock size={12} className="text-yellow-500" />
@@ -550,7 +559,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         onBlur={() => commitFieldEdit(data.id)}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
-                                        <option value="">— не выбрано — (Pick from {groupName}...)</option>
+                                        <option value="">{t('— not selected — (Pick from {0}...)', groupName)}</option>
                                         {uniqueNodes.map(node => (
                                             <option key={node.value} value={node.value}>{node.displayText}</option>
                                         ))}
@@ -572,7 +581,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         onBlur={() => commitFieldEdit(data.id)}
                                         onMouseDown={(e) => e.stopPropagation()}
                                     >
-                                        <option value="">— не выбрано —</option>
+                                        <option value="">{t('— not selected —')}</option>
                                         {dataType.options.map((opt, idx) => {
                                             // Support both string format and object format
                                             const optValue = typeof opt === 'string' ? opt : opt.value;
@@ -590,7 +599,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                         "w-full bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-neutral-200 focus:outline-none focus:border-blue-500 text-center transition-all",
                                         data.data.locked && "opacity-50 cursor-not-allowed bg-neutral-950"
                                     )}
-                                    placeholder="Value..."
+                                    placeholder={t('Value...')}
                                     value={data.data.value || ''}
                                     readOnly={data.data.locked}
                                     onChange={(e) => !data.data.locked && updateNodeData(data.id, { value: e.target.value })}
@@ -618,7 +627,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                             onFocus={() => beginFieldEdit(data.id)}
                             onBlur={() => commitFieldEdit(data.id)}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Path to function file (relative to public/)"
+                            title={t('Path to function file (relative to public/)')}
                         />
                         {data.data.file && (
                             <button
@@ -629,7 +638,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 }}
                                 onMouseDown={(e) => e.stopPropagation()}
                             >
-                                Open in New Window
+                                {t('Open in New Window')}
                             </button>
                         )}
                     </div>
@@ -691,7 +700,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: port.id, type })}
                                 onMouseLeave={() => setHoveredPort(null)}
-                                title={port.type.startsWith('ref:') ? `Bi-directional (${port.type})` : (isSelected ? 'Selected port (click again to cancel)' : (isCompatible ? 'Compatible port (click to connect)' : port.type))}
+                                title={port.type.startsWith('ref:') ? t('Bi-directional ({0})', port.type) : (isSelected ? t('Selected port (click again to cancel)') : (isCompatible ? t('Compatible port (click to connect)') : port.type))}
                             />
                         );
                     };
@@ -713,7 +722,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 onBlur={() => commitFieldEdit(data.id)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => e.stopPropagation()}
-                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                                title={t('Local value for "{0}" (used while the port is unconnected)', port.name || port.id)}
                             >
                                 <option value="">…</option>
                                 {options.map((opt: any, idx: number) => {
@@ -735,7 +744,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                                 onBlur={() => commitFieldEdit(data.id)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => e.stopPropagation()}
-                                title={`Локальное значение для "${port.name || port.id}" (используется, пока порт не подключён)`}
+                                title={t('Local value for "{0}" (used while the port is unconnected)', port.name || port.id)}
                             />
                         );
 
@@ -875,7 +884,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         return (
                             <div
                                 className="absolute left-0 top-0 bottom-0 w-4 -ml-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
-                                title={leftSelected ? 'Selected port (click again to cancel)' : (leftCompatible ? 'Compatible port (click to connect)' : 'Left (click to connect)')}
+                                title={leftSelected ? t('Selected port (click again to cancel)') : (leftCompatible ? t('Compatible port (click to connect)') : t('Left (click to connect)'))}
                                 onClick={(e) => handlePortClick(e, 'left', portType)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'left', type: portType })}
@@ -911,7 +920,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         return (
                             <div
                                 className="absolute right-0 top-0 bottom-0 w-4 -mr-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
-                                title={rightSelected ? 'Selected port (click again to cancel)' : (rightCompatible ? 'Compatible port (click to connect)' : 'Right (click to connect)')}
+                                title={rightSelected ? t('Selected port (click again to cancel)') : (rightCompatible ? t('Compatible port (click to connect)') : t('Right (click to connect)'))}
                                 onClick={(e) => handlePortClick(e, 'right', portType)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'right', type: portType })}
@@ -947,7 +956,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         return (
                             <div
                                 className="absolute top-0 left-0 right-0 h-4 -mt-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
-                                title={topSelected ? 'Selected port (click again to cancel)' : (topCompatible ? 'Compatible port (click to connect)' : 'Top (click to connect)')}
+                                title={topSelected ? t('Selected port (click again to cancel)') : (topCompatible ? t('Compatible port (click to connect)') : t('Top (click to connect)'))}
                                 onClick={(e) => handlePortClick(e, 'top', portType)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'top', type: portType })}
@@ -983,7 +992,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         return (
                             <div
                                 className="absolute bottom-0 left-0 right-0 h-4 -mb-2 cursor-crosshair flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
-                                title={bottomSelected ? 'Selected port (click again to cancel)' : (bottomCompatible ? 'Compatible port (click to connect)' : 'Bottom (click to connect)')}
+                                title={bottomSelected ? t('Selected port (click again to cancel)') : (bottomCompatible ? t('Compatible port (click to connect)') : t('Bottom (click to connect)'))}
                                 onClick={(e) => handlePortClick(e, 'bottom', portType)}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onMouseEnter={() => setHoveredPort({ portId: 'bottom', type: portType })}
@@ -1027,7 +1036,7 @@ export const NodeComponent: React.FC<NodeProps> = ({ data, onContextMenu }) => {
                         className="px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-700 text-[11px] text-neutral-200 whitespace-nowrap shadow-lg"
                         style={{ transform: `scale(${1 / hoverTooltipScale})`, transformOrigin: 'top center' }}
                     >
-                        {data.data?.label || definition.name}
+                        {data.data?.label || displayName}
                     </div>
                 </div>
             )}

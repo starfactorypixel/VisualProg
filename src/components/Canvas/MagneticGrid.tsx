@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useEditorStore, GridRow, MagneticGridConfig } from '../../store/useEditorStore';
 import { shallow } from 'zustand/shallow';
+import { useTranslate } from '../../i18n';
 
 // Пересчитывать содержимое тяжёлой сетки (см. StaticMagneticGrid ниже) на каждый
 // mousemove незачем: вокруг экрана уже есть буфер в 1 ширину/высоту экрана с
@@ -71,6 +72,7 @@ interface StaticGridProps {
 const StaticMagneticGrid = React.memo<StaticGridProps>(({
     pan, scale, config, displayRows, showCommandMagnets, showDataMagnets, isMagnetic
 }) => {
+    const t = useTranslate();
     const { commandColumnSpacing, dataColumnOffset, magnetRadius } = config;
 
     const viewportWidth = window.innerWidth / scale;
@@ -155,7 +157,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
                                 fontSize="10"
                                 fontFamily="monospace"
                             >
-                                Row {row.index} (ports: {row.maxDataPorts})
+                                {t('Row {0} (ports: {1})', row.index, row.maxDataPorts)}
                             </text>
 
                             {showCommandIntersections && commandColumns.map((x, colIdx) => (
@@ -227,6 +229,7 @@ const StaticMagneticGrid = React.memo<StaticGridProps>(({
 StaticMagneticGrid.displayName = 'StaticMagneticGrid';
 
 export const MagneticGrid: React.FC = () => {
+    const t = useTranslate();
     const { scale, pan, magneticGridMode, magneticGridConfig, gridRows, draggingState } = useEditorStore((state) => ({
         scale: state.scale,
         pan: state.pan,
@@ -314,7 +317,7 @@ export const MagneticGrid: React.FC = () => {
                             fontWeight="bold"
                             textAnchor="middle"
                         >
-                            SNAP
+                            {t('SNAP')}
                         </text>
                     </g>
                 )}

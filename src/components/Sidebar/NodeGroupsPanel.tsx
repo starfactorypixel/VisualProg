@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { NodeGroupDef } from '../../utils/TemplateSchema';
 import { TemplateIcon } from '../UI/TemplateIcon';
+import { useTranslate } from '../../i18n';
 import clsx from 'clsx';
 
 // ─── Tree types ───────────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ interface TreeLeaf {
 
 type TreeNode = TreeBranch | TreeLeaf;
 
-function buildOptionTree(group: NodeGroupDef, priorTags: string[], stepIdx: number, idPrefix: string): TreeNode[] {
+function buildOptionTree(group: NodeGroupDef, priorTags: string[], stepIdx: number, idPrefix: string, translations: Record<string, string>): TreeNode[] {
     if (stepIdx >= group.steps.length) {
         return group.nodes
             .filter(n => priorTags.every(tag => n.tags.includes(tag)))
@@ -47,28 +48,30 @@ function buildOptionTree(group: NodeGroupDef, priorTags: string[], stepIdx: numb
     // Этот шаг не затрагивает ни один из выживших узлов (напр. у унарных
     // операций нет типа операндов) — пропускаем уровень, идём к следующему шагу.
     if (relevantOptions.length === 0) {
-        return buildOptionTree(group, priorTags, stepIdx + 1, idPrefix);
+        return buildOptionTree(group, priorTags, stepIdx + 1, idPrefix, translations);
     }
 
     return relevantOptions.map(opt => {
         const nodeId = `${idPrefix}>${opt.id}`;
-        const children = buildOptionTree(group, [...priorTags, opt.id], stepIdx + 1, nodeId);
+        const label = translations[opt.id] ?? opt.label;
+        const children = buildOptionTree(group, [...priorTags, opt.id], stepIdx + 1, nodeId, translations);
 
         if (children.length === 1 && children[0].type === 'leaf') {
-            return { ...children[0], id: nodeId, label: opt.label };
+            return { ...children[0], id: nodeId, label };
         }
 
-        return { type: 'branch', id: nodeId, optionId: opt.id, label: opt.label, description: opt.description, color: group.color, children };
+        return { type: 'branch', id: nodeId, optionId: opt.id, label, description: opt.description, color: group.color, children };
     });
 }
 
-function buildGroupTree(groups: NodeGroupDef[]): TreeNode[] {
+function buildGroupTree(groups: NodeGroupDef[], translations: Record<string, string>): TreeNode[] {
     return groups.map(group => {
-        const children = buildOptionTree(group, [], 0, group.id);
+        const label = translations[group.id] ?? group.label;
+        const children = buildOptionTree(group, [], 0, group.id, translations);
         if (children.length === 1 && children[0].type === 'leaf') {
-            return { ...children[0], id: group.id, label: group.label };
+            return { ...children[0], id: group.id, label };
         }
-        return { type: 'branch', id: group.id, label: group.label, description: group.description, color: group.color, children };
+        return { type: 'branch', id: group.id, label, description: group.description, color: group.color, children };
     });
 }
 
@@ -79,10 +82,11 @@ function countLeaves(node: TreeNode): number {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const NodeGroupsPanel: React.FC = () => {
-    const { nodeDefinitions, nodeGroups } = useEditorStore();
+    const t = useTranslate();
+    const { nodeDefinitions, nodeGroups, translations } = useEditorStore();
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-    const tree = useMemo(() => buildGroupTree(nodeGroups), [nodeGroups]);
+    const tree = useMemo(() => buildGroupTree(nodeGroups, translations), [nodeGroups, translations]);
 
     const toggle = (id: string) => {
         setExpanded(prev => {
@@ -102,7 +106,7 @@ export const NodeGroupsPanel: React.FC = () => {
     if (nodeGroups.length === 0) {
         return (
             <div className="text-center py-8 text-neutral-600 text-xs italic px-3">
-                У этого шаблона нет групп команд
+                {t('This template has no command groups')}
             </div>
         );
     }
@@ -134,7 +138,7 @@ export const NodeGroupsPanel: React.FC = () => {
                     />
                     <span className="text-xs text-neutral-300 truncate flex-1">{node.label}</span>
                     {!def && (
-                        <span className="text-[9px] text-yellow-600 shrink-0">не найдена</span>
+                        <span className="text-[9px] text-yellow-600 shrink-0">{t('not found')}</span>
                     )}
                 </div>
             );

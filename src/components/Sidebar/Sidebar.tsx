@@ -3,12 +3,14 @@ import { useEditorStore } from '../../store/useEditorStore';
 import { NodeGroupsPanel } from './NodeGroupsPanel';
 import { FunctionsPanel } from './FunctionsPanel';
 import { TemplateIcon } from '../UI/TemplateIcon';
+import { useTranslate } from '../../i18n';
 import clsx from 'clsx';
 
 type SidebarTab = 'commands' | 'groups' | 'data' | 'functions';
 
 export const Sidebar: React.FC = () => {
-    const { nodeDefinitions, dataTypes, linking } = useEditorStore();
+    const t = useTranslate();
+    const { nodeDefinitions, dataTypes, linking, translations } = useEditorStore();
     const [activeTab, setActiveTab] = useState<SidebarTab>('commands');
     const [cmdFilter, setCmdFilter] = useState('');
     const searchRef = useRef<HTMLInputElement>(null);
@@ -20,10 +22,10 @@ export const Sidebar: React.FC = () => {
     };
 
     const tabs: { id: SidebarTab; label: string; title: string }[] = [
-        { id: 'commands',  label: 'CMD',  title: 'Commands' },
-        { id: 'groups',    label: 'GRP',  title: 'Groups' },
-        { id: 'data',      label: 'DATA', title: 'Data Types' },
-        { id: 'functions', label: 'FN',   title: 'Functions' },
+        { id: 'commands',  label: 'CMD',  title: t('Commands') },
+        { id: 'groups',    label: 'GRP',  title: t('Groups') },
+        { id: 'data',      label: 'DATA', title: t('Data Types') },
+        { id: 'functions', label: 'FN',   title: t('Functions') },
     ];
 
     return (
@@ -64,7 +66,7 @@ export const Sidebar: React.FC = () => {
                             <input
                                 ref={searchRef}
                                 type="text"
-                                placeholder="Фильтр команд..."
+                                placeholder={t('Filter commands...')}
                                 value={cmdFilter}
                                 onChange={e => setCmdFilter(e.target.value)}
                                 onMouseDown={e => e.stopPropagation()}
@@ -90,19 +92,21 @@ export const Sidebar: React.FC = () => {
                             const filtered = query
                                 ? nodeDefinitions.filter(def =>
                                     def.name.toLowerCase().includes(query) ||
-                                    def.id.toLowerCase().includes(query)
+                                    def.id.toLowerCase().includes(query) ||
+                                    (translations[def.id] ?? '').toLowerCase().includes(query)
                                 )
                                 : nodeDefinitions;
 
                             if (filtered.length === 0) {
                                 return (
                                     <div className="text-center py-8 text-neutral-600 text-xs italic">
-                                        Ничего не найдено
+                                        {t('Nothing found')}
                                     </div>
                                 );
                             }
 
                             return filtered.map(def => {
+                                const displayName = translations[def.id] ?? def.name;
                                 // Highlight matching part in name
                                 const renderName = (name: string) => {
                                     if (!query) return <span>{name}</span>;
@@ -138,7 +142,7 @@ export const Sidebar: React.FC = () => {
                                             }
                                         />
                                         <span className="text-xs text-neutral-300 truncate">
-                                            {renderName(def.name)}
+                                            {renderName(displayName)}
                                         </span>
                                     </div>
                                 );
@@ -153,10 +157,10 @@ export const Sidebar: React.FC = () => {
                 <>
                     <div className="p-3 border-b border-neutral-800 shrink-0">
                         <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                            Node Groups
+                            {t('Node Groups')}
                         </h2>
                         <p className="text-[10px] text-neutral-600 mt-0.5">
-                            Дерево команд по категориям
+                            {t('Command tree by category')}
                         </p>
                     </div>
                     <div className="flex-1 overflow-y-auto">
@@ -170,7 +174,7 @@ export const Sidebar: React.FC = () => {
                 <>
                     <div className="p-3 border-b border-neutral-800 shrink-0">
                         <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                            Data Types
+                            {t('Data Types')}
                         </h2>
                     </div>
                     <div className="flex-1 overflow-y-auto py-1 px-2">
@@ -227,10 +231,10 @@ export const Sidebar: React.FC = () => {
                 <>
                     <div className="p-3 border-b border-neutral-800 shrink-0">
                         <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                            Functions
+                            {t('Functions')}
                         </h2>
                         <p className="text-[10px] text-neutral-600 mt-0.5">
-                            Перетащите на холст — файл привяжется автоматически
+                            {t('Drag onto the canvas — the file will be linked automatically')}
                         </p>
                     </div>
                     <div className="flex-1 overflow-hidden flex flex-col">

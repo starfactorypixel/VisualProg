@@ -5,11 +5,13 @@ import { TopMenu } from './components/UI/TopMenu';
 import { VariablesBar } from './components/UI/VariablesBar';
 import { DockablePanel, DockZoneOverlay } from './components/UI/DockablePanel';
 import { DockSide, usePanelLayoutStore } from './store/usePanelLayoutStore';
-import { useEditorStore } from './store/useEditorStore';
+import { useEditorStore, UI_LANGUAGE_STORAGE_KEY } from './store/useEditorStore';
 import { genId } from './utils/id';
+import { useTranslate } from './i18n';
 
 function App() {
-    const { addNode, scale, pan, setData, loadTemplate, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
+    const t = useTranslate();
+    const { addNode, scale, pan, setData, loadTemplate, setActiveLanguage, undo, redo, removeSelectedNodes, copySelectedNodes, duplicateSelectedNodes, pasteNodes } = useEditorStore();
     const canvasWrapperRef = useRef<HTMLDivElement>(null);
     const lastMousePos = useRef<{ x: number; y: number } | null>(null);
 
@@ -100,12 +102,20 @@ function App() {
                 if (!res.ok) throw new Error('Template not found');
                 return res.json();
             })
-            .then(template => loadTemplate(template))
+            .then(template => {
+                loadTemplate(template);
+                // Восстанавливаем выбор языка ПОСЛЕ загрузки шаблона — иначе
+                // setActiveLanguage ещё не увидит activeTemplate.languages и
+                // молча пропустит перевод команд/групп, даже если файл для
+                // этого языка у шаблона есть (см. комментарий в setActiveLanguage).
+                const savedLanguage = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
+                if (savedLanguage) setActiveLanguage(savedLanguage);
+            })
             .catch(err => {
                 console.error('Failed to load default template:', err);
-                alert('Не удалось загрузить templates/drake_template.json — палитра нод будет пустой.');
+                alert(t('Failed to load templates/drake_template.json — the node palette will be empty.'));
             });
-    }, [loadTemplate]);
+    }, [loadTemplate, setActiveLanguage]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -126,12 +136,12 @@ function App() {
                         setData(data, data.signature, fileParam);
                     } else {
                         console.error('Invalid file format');
-                        alert('Invalid file format loaded from URL');
+                        alert(t('Invalid file format loaded from URL'));
                     }
                 })
                 .catch(err => {
                     console.error('Failed to load file:', err);
-                    alert('Failed to load file: ' + fileParam + '\nMake sure it exists in the public directory.');
+                    alert(t('Failed to load file: {0}\nMake sure it exists in the public directory.', fileParam));
                 });
         }
     }, [setData]);
@@ -180,7 +190,7 @@ function App() {
         <DockablePanel
             key="sidebar"
             id="sidebar"
-            title="Команды"
+            title={t('Commands')}
             defaultDock="left"
             defaultSize={256}
             defaultFloatSize={{ width: 288, height: 520 }}
@@ -195,7 +205,7 @@ function App() {
         <DockablePanel
             key="variablesBar"
             id="variablesBar"
-            title="Переменные"
+            title={t('Variables')}
             defaultDock="top"
             defaultSize={64}
             defaultFloatSize={{ width: 560, height: 180 }}

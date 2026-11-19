@@ -78,6 +78,12 @@ export interface RawTemplate {
     structures?: { name: string; fields: { name: string; type: string }[] }[];
     nodeGroups?: NodeGroupDef[];           // группы для вкладки GRP (пошаговый мастер выбора ноды), см. NodeGroupsPanel
     commands: Record<string, TemplateCommand>;
+    // Коды доступных переводов (напр. ["en"]) — по тому же принципу, что и
+    // иконки: файл templates/<id шаблона>/lang_<код>.json, необязательный.
+    // Список кодов хранится здесь (а не выводится по файлам в папке), потому
+    // что браузер не может прочитать содержимое папки через fetch — список
+    // нужен заранее, чтобы построить меню выбора языка (см. TopMenu.tsx).
+    languages?: string[];
 }
 
 const CONTROL_LABEL = { in: 'Prev', out: 'Next', true: 'TRUE', false: 'FALSE' };

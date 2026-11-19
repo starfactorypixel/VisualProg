@@ -7,6 +7,7 @@ import { PinDef, PinDirection, FunctionFileData } from '../../types/function';
 import { slugifyPinName } from '../../utils/functionSignature';
 import { getOrCreateFileInDirectory, writeJsonToHandle, resolveRelativePath } from '../../utils/fileSystemAccess';
 import { useProjectDirectory } from './useProjectDirectory';
+import { useTranslate } from '../../i18n';
 
 interface FunctionEntry {
     id: string;
@@ -55,6 +56,7 @@ function buildStarterFile(pins: PinDef[]): FunctionFileData {
 }
 
 export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCreated, onCancel }) => {
+    const t = useTranslate();
     const dataTypes = useEditorStore(s => s.dataTypes);
     const [name, setName] = useState('');
     const [relPath, setRelPath] = useState('');
@@ -81,20 +83,20 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
 
     const handleCreate = async () => {
         setError(null);
-        if (!name.trim()) { setError('Укажите название функции'); return; }
-        if (!relPath.trim()) { setError('Укажите путь для сохранения'); return; }
+        if (!name.trim()) { setError(t('Enter a function name')); return; }
+        if (!relPath.trim()) { setError(t('Specify a save path')); return; }
 
         let handle = dirHandle;
         if (status !== 'connected') {
             if (status === 'needs-permission') {
                 const ok = await reconnect();
-                if (!ok) { setError('Нет доступа к папке проекта — нажмите ещё раз, чтобы переподключить'); return; }
+                if (!ok) { setError(t('No access to the project folder — click again to reconnect')); return; }
             } else {
                 handle = await connect();
-                if (!handle) { setError('Нужно выбрать папку проекта, чтобы сохранить файл на диске'); return; }
+                if (!handle) { setError(t('You need to select a project folder to save the file to disk')); return; }
             }
         }
-        if (!handle) { setError('Нет доступа к папке проекта'); return; }
+        if (!handle) { setError(t('No access to the project folder')); return; }
 
         const seenIds = new Set<string>();
         const pinDefs: PinDef[] = pins.map((p, i) => {
@@ -107,10 +109,10 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
         setIsSaving(true);
         try {
             const fileHandle = await getOrCreateFileInDirectory(handle, relPath.trim());
-            if (!fileHandle) { setError('Не удалось создать файл по этому пути'); return; }
+            if (!fileHandle) { setError(t('Failed to create file at this path')); return; }
 
             const ok = await writeJsonToHandle(fileHandle, buildStarterFile(pinDefs));
-            if (!ok) { setError('Не удалось записать файл'); return; }
+            if (!ok) { setError(t('Failed to write file')); return; }
 
             const resolvedPath = await resolveRelativePath(handle, fileHandle);
             const finalPath = resolvedPath || relPath.trim();
@@ -134,23 +136,23 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
     return (
         <div className="rounded border border-purple-500/60 bg-neutral-800 p-2 space-y-1.5" onMouseDown={e => e.stopPropagation()}>
             <p className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">
-                Конструктор функции
+                {t('Function constructor')}
             </p>
 
             <div>
-                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Название *</label>
+                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Name *')}</label>
                 <input
                     autoFocus
                     className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-200 focus:outline-none focus:border-purple-500"
                     value={name}
                     onChange={e => handleNameChange(e.target.value)}
                     onMouseDown={e => e.stopPropagation()}
-                    placeholder="Название функции"
+                    placeholder={t('Function name')}
                 />
             </div>
 
             <div>
-                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Путь сохранения *</label>
+                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Save path *')}</label>
                 <input
                     className="w-full mt-0.5 bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-400 font-mono focus:outline-none focus:border-purple-500"
                     value={relPath}
@@ -161,7 +163,7 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
             </div>
 
             <div className="space-y-1">
-                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Пины</label>
+                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">{t('Pins')}</label>
                 {pins.map((pin, i) => (
                     <div key={i} className="flex items-center gap-1">
                         <input
@@ -169,7 +171,7 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
                             value={pin.name}
                             onChange={e => updatePin(i, { name: e.target.value })}
                             onMouseDown={e => e.stopPropagation()}
-                            placeholder="Имя"
+                            placeholder={t('Name')}
                         />
                         <select
                             className="bg-neutral-900 border border-neutral-700 rounded px-1 py-1 text-[11px] text-neutral-200 focus:outline-none focus:border-purple-500"
@@ -191,7 +193,7 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
                             className="shrink-0 w-4 text-center text-neutral-500 hover:text-red-400 text-sm leading-none"
                             onClick={() => removePin(i)}
                             onMouseDown={e => e.stopPropagation()}
-                            title="Удалить пин"
+                            title={t('Remove pin')}
                         >
                             ×
                         </button>
@@ -201,15 +203,15 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
                     className="w-full py-1 rounded border border-dashed border-neutral-700 hover:border-purple-500 text-neutral-500 hover:text-purple-400 text-[11px] transition-colors"
                     onClick={addPin}
                 >
-                    + Добавить пин
+                    + {t('Add pin')}
                 </button>
             </div>
 
             {status !== 'connected' && (
                 <p className="text-[10px] text-yellow-600">
                     {status === 'unsupported'
-                        ? 'Этот браузер не поддерживает сохранение в папку проекта (нужен Chrome/Edge)'
-                        : 'При создании будет предложено подключить папку проекта'}
+                        ? t('This browser doesn\'t support saving to a project folder (Chrome/Edge required)')
+                        : t('You\'ll be asked to connect a project folder on creation')}
                 </p>
             )}
             {error && <p className="text-[10px] text-red-400">{error}</p>}
@@ -225,13 +227,13 @@ export const FunctionConstructor: React.FC<FunctionConstructorProps> = ({ onCrea
                     onClick={handleCreate}
                     disabled={!name.trim() || isSaving}
                 >
-                    {isSaving ? 'Создание…' : 'Создать функцию'}
+                    {isSaving ? t('Creating…') : t('Create function')}
                 </button>
                 <button
                     className="flex items-center gap-1 px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-[11px] transition-colors"
                     onClick={onCancel}
                 >
-                    Отмена
+                    {t('Cancel')}
                 </button>
             </div>
         </div>

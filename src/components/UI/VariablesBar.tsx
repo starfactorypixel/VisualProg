@@ -1,9 +1,11 @@
 import React from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
 import { genId } from '../../utils/id';
+import { useTranslate } from '../../i18n';
 import clsx from 'clsx';
 
 export const VariablesBar: React.FC = () => {
+    const t = useTranslate();
     const { nodes, dataTypes, updateNodeData, selectedPort } = useEditorStore();
 
     const dataNodes = nodes.filter(n => n.type === 'data');
@@ -11,7 +13,7 @@ export const VariablesBar: React.FC = () => {
     if (dataNodes.length === 0) {
         return (
             <div className="h-full w-full bg-[#252526] flex items-center px-4 text-xs text-neutral-600 italic">
-                Нет переменных — перетащите тип данных из панели DATA на холст
+                {t('No variables — drag a data type from the DATA panel onto the canvas')}
             </div>
         );
     }
@@ -53,7 +55,7 @@ export const VariablesBar: React.FC = () => {
                 >
                     <div
                         className="text-neutral-500 font-bold text-[10px] uppercase tracking-wider px-1 cursor-text"
-                        title="Group Name"
+                        title={t('Group Name')}
                     >
                         {group}
                     </div>
@@ -84,7 +86,7 @@ export const VariablesBar: React.FC = () => {
                                         isLinkingMatch ? "border-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] ring-1 ring-green-500" : "border-neutral-600"
                                     )}
                                     style={{ borderLeftColor: typeDef?.color || '#555', borderLeftWidth: 2 }}
-                                    title={`Type: ${typeDef?.name}\nDouble click to rename node on canvas\nDrop wire here to connect`}
+                                    title={t('Type: {0}\nDouble click to rename node on canvas\nDrop wire here to connect', typeDef?.name || '')}
                                 >
                                     <span className="font-medium truncate max-w-[80px]">{displayName}</span>
                                 </div>
@@ -104,7 +106,7 @@ export const VariablesBar: React.FC = () => {
                     const sidebarType = e.dataTransfer.getData('application/reactflow/type');
 
                     if (nodeId) {
-                        const group = prompt('New Group Name:', 'New Group');
+                        const group = prompt(t('New Group Name:'), t('New Group'));
                         if (group) {
                             updateNodeData(nodeId, { group });
 
@@ -122,7 +124,7 @@ export const VariablesBar: React.FC = () => {
                             }
                         }
                     } else if (sidebarTypeId && sidebarType === 'data') {
-                        const group = prompt('New Group Name:', sidebarTypeId.toUpperCase());
+                        const group = prompt(t('New Group Name:'), sidebarTypeId.toUpperCase());
                         if (group) {
                             const store = useEditorStore.getState();
                             const { pan, scale } = store;
@@ -153,7 +155,7 @@ export const VariablesBar: React.FC = () => {
                 }}
                 onDragOver={handleDragOver}
             >
-                <span className="text-[10px] text-center pointer-events-none">Drop here<br />for new group</span>
+                <span className="text-[10px] text-center pointer-events-none">{t('Drop here')}<br />{t('for new group')}</span>
             </div>
         </div>
     );

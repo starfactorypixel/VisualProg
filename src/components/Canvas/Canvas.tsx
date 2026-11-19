@@ -8,8 +8,10 @@ import { ConnectionLayer } from './ConnectionLayer';
 import { Position } from '../../types';
 import { ContextMenu } from '../UI/ContextMenu';
 import { BridgePicker } from '../UI/BridgePicker';
+import { useTranslate } from '../../i18n';
 
 export const Canvas: React.FC = () => {
+    const t = useTranslate();
     const containerRef = useRef<HTMLDivElement>(null);
     // Обёртка нод двигается/масштабируется через один CSS-transform (см. ниже,
     // style={{transform: translate(...) scale(...)}}) на will-change-transform
@@ -338,7 +340,7 @@ export const Canvas: React.FC = () => {
                         {
                             label: 'Set Group',
                             action: () => {
-                                const group = prompt('Enter Group Name (e.g. Player, Game):', 'Global');
+                                const group = prompt(t('Enter Group Name (e.g. Player, Game):'), 'Global');
                                 if (group !== null) {
                                     const store = useEditorStore.getState();
                                     store.beginFieldEdit(contextMenu.id);
@@ -362,7 +364,7 @@ export const Canvas: React.FC = () => {
                         },
                         {
                             label: selectedNodeIds.length > 1
-                                ? `Duplicate ${selectedNodeIds.length} Nodes`
+                                ? t('Duplicate {0} Nodes', selectedNodeIds.length)
                                 : 'Duplicate',
                             action: () => {
                                 if (contextMenu.type === 'node') {
@@ -389,7 +391,7 @@ export const Canvas: React.FC = () => {
                         },
                         {
                             label: contextMenu.type === 'node'
-                                ? (selectedNodeIds.length > 1 ? `Delete ${selectedNodeIds.length} Nodes` : 'Delete Node')
+                                ? (selectedNodeIds.length > 1 ? t('Delete {0} Nodes', selectedNodeIds.length) : 'Delete Node')
                                 : 'Delete Connection',
                             danger: true,
                             action: () => {
@@ -416,7 +418,7 @@ export const Canvas: React.FC = () => {
                     onClose={() => setEmptySpaceMenu(null)}
                     items={[
                         {
-                            label: clipboard ? `Paste (${clipboard.nodes.length} nodes)` : 'Paste (clipboard empty)',
+                            label: clipboard ? t('Paste ({0} nodes)', clipboard.nodes.length) : 'Paste (clipboard empty)',
                             action: () => {
                                 if (clipboard) {
                                     const store = useEditorStore.getState();

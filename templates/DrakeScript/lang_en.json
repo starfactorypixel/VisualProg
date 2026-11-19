@@ -1,0 +1,46 @@
+{
+    "opt_eq": "== (equal)",
+    "opt_neq": "!= (not equal)",
+    "opt_lt": "< (less than)",
+    "opt_lte": "<= (less than or equal)",
+    "opt_gt": "> (greater than)",
+    "opt_gte": ">= (greater than or equal)",
+
+    "opt_add": "+ (addition)",
+    "opt_sub": "- (subtraction)",
+    "opt_mul": "× (multiplication)",
+    "opt_div": "÷ (division)",
+    "opt_inc": "++ (increment)",
+    "opt_dec": "-- (decrement)",
+    "opt_neg": "*(-1) (negate)",
+    "opt_mod": "% (modulo)",
+    "opt_reg_val_m": "Reg and Val",
+    "opt_reg_reg_m": "Reg and Reg",
+
+    "opt_lshift": "<< (shift left)",
+    "opt_rshift": ">> (shift right)",
+    "opt_and": "&& (logical AND)",
+    "opt_or": "|| (logical OR)",
+    "opt_xor": "^ (logical XOR)",
+    "opt_reg_val_l": "Reg and Val",
+    "opt_reg_reg_l": "Reg and Reg",
+
+    "opt_script_start": "Script start",
+    "opt_func_start": "Function begin",
+    "opt_call_function": "Function call",
+    "opt_goto": "Jump (Goto)",
+    "opt_end": "Function end (End)",
+    "opt_exit": "Script exit (Exit)",
+
+    "opt_from_val": "From constant",
+    "opt_from_reg": "From another register",
+    "opt_from_parse": "From parsed input data",
+
+    "opt_arg_set": "Write (Set)",
+    "opt_arg_get": "Read (Get)",
+    "opt_arg_val": "Constant",
+    "opt_arg_reg": "Register",
+
+    "opt_can_raw": "Raw bytes",
+    "opt_can_reg": "Registers + type"
+}

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslate } from '../../i18n';
 
 interface ContextMenuProps {
     x: number;
@@ -8,6 +9,7 @@ interface ContextMenuProps {
 }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, items }) => {
+    const t = useTranslate();
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -37,7 +39,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, items }
                         onClose();
                     }}
                 >
-                    {item.label}
+                    {t(item.label)}
                 </div>
             ))}
         </div>
